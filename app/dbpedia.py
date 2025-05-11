@@ -47,3 +47,9 @@ def fetch_all_triples(entity: str, batch_size: int = 500) -> list[dict[str, str]
         offset += batch_size
 
     return all_triples
+
+def fetch_hundred_triples(entity: str) -> list[dict[str, str]]:
+    """
+    Fetch _at most_ 100 triples for the given entity.
+    """
+    return _fetch_page(entity, limit=100, offset=0)

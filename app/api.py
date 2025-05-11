@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from .nlp import extract_entities
-from .dbpedia import fetch_all_triples
+from .dbpedia import fetch_all_triples, fetch_hundred_triples
 
 bp = Blueprint("api", __name__)
 
@@ -33,7 +33,7 @@ def triples():
     seen: set[tuple[str, str, str]] = set()
 
     for ent in entities:
-        for t in fetch_all_triples(ent):
+        for t in fetch_hundred_triples(ent):
             key = (t["subject"], t["predicate"], t["object"])
             if key not in seen:
                 seen.add(key)

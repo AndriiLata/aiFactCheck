@@ -7,7 +7,15 @@ Light-weight NLP helper built on spaCy.
 from functools import lru_cache
 import spacy
 
-_ALLOWED_TYPES = {"PERSON", "ORG", "GPE", "LOC", "NORP"}
+_ALLOWED_TYPES = {
+    # canonical “who / what / where”
+    "PERSON", "ORG", "GPE", "LOC", "NORP",
+    # measurements, dates, etc.
+    "DATE", "TIME", "QUANTITY", "PERCENT", "MONEY",
+    "CARDINAL", "ORDINAL",
+    # events, works, products, laws…
+    "EVENT", "WORK_OF_ART", "LAW", "PRODUCT", "LANGUAGE",
+}
 
 @lru_cache  # ensures the model is only loaded once
 def _nlp():
