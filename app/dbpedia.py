@@ -5,6 +5,21 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 _ENDPOINT = "https://dbpedia.org/sparql"
 
 def _resource_uri(entity: str) -> str:
+    """
+    Return a SPARQL-ready resource in angle-bracket form <…>.
+
+    • If *entity* is already a full URI, just wrap (or keep) it in < … >
+    • Otherwise treat it as a surface label and encode it.
+    """
+    # already like "<http://dbpedia.org/resource/Barack_Obama>"
+    if entity.startswith("<") and entity.endswith(">"):
+        return entity
+
+    # already full URI but without brackets
+    if entity.startswith("http://") or entity.startswith("https://"):
+        return f"<{entity.strip('<>')}>"
+
+    # plain surface form  → encode & build URI
     encoded = quote(entity.replace(" ", "_"))
     return f"<http://dbpedia.org/resource/{encoded}>"
 

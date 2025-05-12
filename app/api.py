@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 
-from .nlp import extract_entities
-from .dbpedia import fetch_all_triples, fetch_hundred_triples
+from .nlp import extract_linked_entities
+from .dbpedia import fetch_hundred_triples   # unchanged
 
 bp = Blueprint("api", __name__)
 
@@ -27,16 +27,22 @@ def triples():
         return jsonify({"error": "POST body must be JSON with a 'sentence' field"}), 400
 
     sentence: str = payload["sentence"]
-    entities = extract_entities(sentence)
+
+    # [{text, label, uri, score}, …]
+    linked = extract_linked_entities(sentence)
+
+    # keep old “entities” list for backward compatibility
+    entity_texts = [e["text"] for e in linked]
 
     all_triples: list[dict[str, str]] = []
     seen: set[tuple[str, str, str]] = set()
 
-    for ent in entities:
-        for t in fetch_hundred_triples(ent):
+    for ent in linked:
+        # use canonical DBpedia URI (works because of the dbpedia.py patch)
+        for t in fetch_hundred_triples(ent["uri"]):
             key = (t["subject"], t["predicate"], t["object"])
             if key not in seen:
                 seen.add(key)
                 all_triples.append(t)
 
-    return jsonify({"entities": entities, "triples": all_triples})
+    return jsonify({"entities": entity_texts, "triples": all_triples})

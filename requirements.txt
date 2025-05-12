@@ -1,3 +1,9 @@
-flask>=3.0
+# --- NLP linking
 spacy>=3.7
+spacy-transformers>=1.3          # transformer-based NER
+rapidfuzz>=3.6                   # fast Levenshtein
+requests>=2.32                   # DBpedia-Spotlight REST
+# --- DBpedia
+flask>=3.0
 SPARQLWrapper>=2.0
+
