@@ -1,9 +1,17 @@
 from flask import Flask
-from .api import bp as api_bp
+from dotenv import load_dotenv
+from .config import Settings
+from .api import api_bp
 
 def create_app() -> Flask:
-    """Factory that creates and configures the Flask application."""
+    """Application factory."""
+    load_dotenv()
     app = Flask(__name__)
-    app.config["JSON_SORT_KEYS"] = False          # keep insertion order
-    app.register_blueprint(api_bp, url_prefix="/")
+
+    # set in Settings class (see below)
+    app.config.from_object(Settings())
+
+    # register blueprints
+    app.register_blueprint(api_bp)
+
     return app
