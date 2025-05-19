@@ -1,55 +1,55 @@
-from flask import request, jsonify
+"""
+REST endpoint /verify implementing:
+• 1-hop fetch & rank
+• only fetch 2-hop if score < 0.4
+"""
+from __future__ import annotations
+
+from flask import Blueprint, request, jsonify
+from http import HTTPStatus
+
+from app.services.triple_extractor import parse_claim_to_triple
+from app.services.kg_client        import KGClient
+from app.services.evidence_ranker  import EvidenceRanker
+from app.services.verifier         import Verifier
 from app.api import api_bp
 
-from app.services.entity_extractor import extract_linked_entities
-from app.services.dbpedia_client    import fetch_top_similar_entities, fetch_all_triples
+from app.services.entity_linker import EntityLinker
 
-@api_bp.route("/triples", methods=["POST"])
-def triples():
-    """
-    POST { "sentence": "..." }
-    → {
-         "entities": [
-           { "text": "Donald Trump", "links": [ ... up to 10 {uri,score} ... ] },
-           ...
-         ],
-         "triples": [
-           {"subject": "...", "predicate": "...", "object": "..."},
-           ...
-         ]
-       }
-    """
-    data = request.get_json(force=True)
-    sentence = data.get("sentence")
-    if not sentence:
-        return jsonify({"error": "JSON must include 'sentence'"}), 400
 
-    # 1) Extract entities (LLM + spaCy + numeric)
-    ents = extract_linked_entities(sentence)
+@api_bp.route("/verify", methods=["POST"])
+def verify():  # → (dict, int)
+    data  = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
 
-    # 2) Build per-entity link lists
-    entities_out = []
-    for ent in ents:
-        txt = ent["text"]
-        if txt.isdigit():
-            links = []
-        else:
-            links = fetch_top_similar_entities(txt, top_n=10)
-        entities_out.append({"links": links, "text": txt})
+    # 1) Triple extraction
+    triple = parse_claim_to_triple(claim)
+    if triple is None:
+        return jsonify({"error": "Could not extract a semantic triple from the claim."}), HTTPStatus.UNPROCESSABLE_ENTITY
 
-    # 3) Fetch & dedupe triples from all URIs
-    triples = []
-    seen = set()
-    for ent in entities_out:
-        for link in ent["links"]:
-            uri = link["uri"]
-            for row in fetch_all_triples(uri, batch_size=250):
-                subj = row.get("subject")   or row.get("s")
-                pred = row.get("predicate") or row.get("p")
-                obj  = row.get("object")    or row.get("o")
-                key = (subj, pred, obj)
-                if key not in seen:
-                    seen.add(key)
-                    triples.append({"subject": subj, "predicate": pred, "object": obj})
+    linker = EntityLinker()
+    s_uris = [u for u, _ in linker.link(triple.subject)]
+    o_uris = [u for u, _ in linker.link(triple.object)]
 
-    return jsonify({"entities": entities_out, "triples": triples})
+    kg = KGClient()
+    paths = kg.fetch_paths(s_uris, o_uris)  # NEW signature
+    ranker = EvidenceRanker(claim)
+
+    evidence_paths = ranker.top_k(triple, paths, k=3)
+    best_path = evidence_paths[0] if evidence_paths else []
+    score = ranker._score_path(triple, best_path) if best_path else 0.0
+
+
+
+    # 4) Verification step (GPT)
+    verifier = Verifier()
+    label, reason = verifier.classify(claim, triple, best_path, score)
+
+    return jsonify({
+        "triple":   triple.__dict__,
+        "evidence": [e.__dict__ for e in best_path],
+        "label":    label,
+        "reason":   reason,
+    }), HTTPStatus.OK

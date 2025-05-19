@@ -12,3 +12,5 @@ gunicorn>=21.2
 # ── Caching ────────────────────────
 redis>=5.0
 
+# ── Fact extraction ────────────────────────
+stanford-openie>=1.3.2
