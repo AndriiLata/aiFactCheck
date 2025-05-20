@@ -29,19 +29,20 @@ def verify():  # → (dict, int)
     if triple is None:
         return jsonify({"error": "Could not extract a semantic triple from the claim."}), HTTPStatus.UNPROCESSABLE_ENTITY
 
+    # 2) Entity linking -> parse the subject and object into a proper DBpedia link
     linker = EntityLinker()
     s_uris = [u for u, _ in linker.link(triple.subject)]
     o_uris = [u for u, _ in linker.link(triple.object)]
 
+    #3) Fetch paths from DBpedia
     kg = KGClient()
     paths = kg.fetch_paths(s_uris, o_uris)
 
+    # 3) Rank the path, considering the claim
     ranker = EvidenceRanker(claim)
     evidence_paths = ranker.top_k(triple, paths, k=3)
-
     best_path = evidence_paths[0] if evidence_paths else []
     score = ranker._score_path(triple, best_path) if best_path else 0.0
-
 
 
     # 4) Verification step (GPT)
