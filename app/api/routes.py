@@ -34,10 +34,11 @@ def verify():  # → (dict, int)
     o_uris = [u for u, _ in linker.link(triple.object)]
 
     kg = KGClient()
-    paths = kg.fetch_paths(s_uris, o_uris)  # NEW signature
-    ranker = EvidenceRanker(claim)
+    paths = kg.fetch_paths(s_uris, o_uris)
 
+    ranker = EvidenceRanker(claim)
     evidence_paths = ranker.top_k(triple, paths, k=3)
+
     best_path = evidence_paths[0] if evidence_paths else []
     score = ranker._score_path(triple, best_path) if best_path else 0.0
 
