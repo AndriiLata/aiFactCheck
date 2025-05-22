@@ -11,7 +11,7 @@ from typing import Optional, List
 #from .openai_client import chat
 #from .models import Triple
                # starts an internal CoreNLP JVM
-
+"""
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 
@@ -76,6 +76,16 @@ decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=Fal
 for idx, sentence in enumerate(decoded_preds):
     print(f'Prediction triplets sentence {idx}')
     print(extract_triplets(sentence))
+"""
+
+from openie import StanfordOpenIE
+
+text = "Barack Obama was born in Hawaii. He was the 44th president of the United States."
+
+with StanfordOpenIE() as client:
+    triples = client.annotate(text)
+    for triple in triples:
+        print('|-', triple)
 
 def _openie_extract(claim: str) -> List[Triple]:
     # ToDO!!!
