@@ -11,9 +11,35 @@ from typing import Optional, List
 #from .openai_client import chat
 #from .models import Triple
                # starts an internal CoreNLP JVM
-"""
+
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
+
+# Text to extract triplets from
+text = "Richard Rosenbaum ist 24 Jahre alt und sein Grossvater war ein Nazi"
+
+
+from llama_cpp import Llama
+llm=Llama.from_pretrained(
+        repo_id="bartowski/Llama-3.2-3B-Instruct-GGUF",
+        filename="Llama-3.2-3B-Instruct-IQ3_M.gguf",
+)
+
+messages = [
+    {"role": "system", "content": "You are an exact and smart OpenIE system helping me to extract SVO triples."},
+    {"role": "user", "content": (
+            "Help me extract all the relevant triples from the following claim. These will then be used as part of a hybrid "
+            "RAG pipeline for retrieval from a knowledge graph. Do not give any explanations. Stick strictly to the "
+            " Subject[], Verb[], Object[] format. Claim: " + text
+    )}
+]
+
+# Generate response
+response = llm.create_chat_completion(messages=messages)
+
+# Print assistant's reply
+print(response["choices"][0]["message"]["content"])
+llm.close()
 
 def extract_triplets(text):
     triplets = []
@@ -56,8 +82,6 @@ gen_kwargs = {
     "num_return_sequences": 1,
 }
 
-# Text to extract triplets from
-text = "Punta Cana is a resort town in the municipality of Higüey, in La Altagracia Province, the easternmost province of the Dominican Republic."
 
 # Tokenizer text
 model_inputs = tokenizer(text, max_length=256, padding=True, truncation=True, return_tensors = 'pt')
@@ -71,21 +95,45 @@ generated_tokens = model.generate(
 
 # Extract text
 decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=False)
+print(decoded_preds)
 
 # Extract triplets
 for idx, sentence in enumerate(decoded_preds):
     print(f'Prediction triplets sentence {idx}')
     print(extract_triplets(sentence))
-"""
+
+
 
 from openie import StanfordOpenIE
 
-text = "Barack Obama was born in Hawaii. He was the 44th president of the United States."
 
 with StanfordOpenIE() as client:
     triples = client.annotate(text)
     for triple in triples:
         print('|-', triple)
+
+
+
+
+import textacy
+import spacy
+from textacy.extract import subject_verb_object_triples
+
+# Load a spaCy model
+nlp = spacy.load("en_core_web_sm")  # or "de_core_news_sm" for German (less accurate)
+
+
+# Process text
+doc = nlp(text)
+
+# Extract SVO triples
+triples = list(subject_verb_object_triples(doc))
+
+# Display results
+for subj, verb, obj in triples:
+    print(f"SUBJECT: {subj}, VERB: {verb}, OBJECT: {obj}")
+
+
 
 def _openie_extract(claim: str) -> List[Triple]:
     # ToDO!!!
