@@ -8,14 +8,17 @@ from __future__ import annotations
 import json
 from typing import Optional, List
 
-from ..config import OPENAI_PROVIDER
 from .openai_client import chat
 from .azure_client import chat_a
+from ..config      import Settings
+
 from .models import Triple
               # starts an internal CoreNLP JVM
 
+settings = Settings()
+
 def get_chat_func():
-    return chat_a if OPENAI_PROVIDER.lower() == "azure" else chat
+    return chat_a if settings.OPENAI_PROVIDER.lower() == "azure" else chat
 
 def _openie_extract(claim: str) -> List[Triple]:
     # ToDO!!!
