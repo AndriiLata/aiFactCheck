@@ -21,6 +21,13 @@ class KGClient:
         self._sparql = SPARQLWrapper(settings.DBPEDIA_ENDPOINT)
         self._sparql.setReturnFormat(JSON)
 
+        # Optional: check endpoint health
+        try:
+            self._sparql.setQuery("ASK { ?s ?p ?o }")
+            self._sparql.query().convert()
+        except Exception as e:
+            raise RuntimeError(f"DBpedia endpoint not reachable: {e}")
+
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
