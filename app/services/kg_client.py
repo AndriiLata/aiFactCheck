@@ -18,7 +18,8 @@ settings = Settings()
 
 class KGClient:
     def __init__(self) -> None:
-        self._sparql = SPARQLWrapper(settings.DBPEDIA_ENDPOINT)
+        # REACHES OUR LOCAL DBPEDIA SPARQL ENDPOINT
+        self._sparql = SPARQLWrapper(settings.DBPEDIA_ENDPOINT_LOCAL)
         self._sparql.setReturnFormat(JSON)
 
         # Optional: check endpoint health
