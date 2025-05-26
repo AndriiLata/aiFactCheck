@@ -18,7 +18,7 @@ from .models import Triple
 settings = Settings()
 
 def get_chat_func():
-    return chat_a if settings.OPENAI_PROVIDER.lower() == "azure" else chat
+    return chat_a if settings.PROVIDER_IN_USE.lower() == "azure" else chat
 
 def _openie_extract(claim: str) -> List[Triple]:
     # ToDO!!!

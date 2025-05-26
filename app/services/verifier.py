@@ -17,7 +17,7 @@ settings = Settings()
 LABELS = ("Supported", "Refuted", "Not Enough Info")
 
 def get_chat_func():
-    return chat_a if settings.OPENAI_PROVIDER.lower() == "azure" else chat
+    return chat_a if settings.PROVIDER_IN_USE.lower() == "azure" else chat
 
 class Verifier:
     """
