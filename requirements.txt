@@ -14,3 +14,4 @@ redis>=5.0
 
 # ── Fact extraction ────────────────────────
 stanford-openie>=1.3.2
+# Java installed on the computer
