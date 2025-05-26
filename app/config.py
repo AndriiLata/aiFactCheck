@@ -6,11 +6,11 @@ class Settings:
 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
-    AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
-    AZURE_API_KEY: str = os.getenv("AZURE_API_KEY", "")
+    # AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
+    # AZURE_API_KEY: str = os.getenv("AZURE_API_KEY", "")
 
     OPENAI_PROVIDER = "openai"
-    AZURE_PROVIDER = "azure"
+    #AZURE_PROVIDER = "azure"
 
     DBPEDIA_ENDPOINT: str = os.getenv(
         "DBPEDIA_ENDPOINT", "https://dbpedia.org/sparql"
