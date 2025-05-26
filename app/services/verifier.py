@@ -44,7 +44,7 @@ class Verifier:
             "content": (
                 "You are a factual consistency expert. Given a user claim, a semantic triple, "
                 "and KB evidence paths, decide whether the claim is supported, refuted, or if "
-                "there is not enough information."
+                "there is not enough information. Do not use any other information than what is given in the evidence."
             ),
         }
         user = {

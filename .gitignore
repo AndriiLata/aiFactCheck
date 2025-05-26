@@ -1,1 +1,4 @@
 .env
+app/services/__pycache__/verifier.cpython-311.pyc
+app/api/__pycache__/routes.cpython-311.pyc
+app/services/__pycache__/evidence_ranker.cpython-311.pyc
