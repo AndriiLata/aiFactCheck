@@ -7,7 +7,7 @@ settings = Settings()
 model_name = "gpt-4o"
 deployment = "gpt-4o"
 
-endpoint = "https://timocaveliustestmodel-resource.cognitiveservices.azure.com/"
+endpoint = settings.AZURE_ENDPOINT
 subscription_key=settings.AZURE_API_KEY
 api_version = "2025-01-01-preview"
 
