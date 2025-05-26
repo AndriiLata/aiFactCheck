@@ -9,9 +9,16 @@ import json
 from typing import Optional, List
 
 from .openai_client import chat
+from .azure_client import chat_a
+from ..config      import Settings
+
 from .models import Triple
               # starts an internal CoreNLP JVM
 
+settings = Settings()
+
+def get_chat_func():
+    return chat_a if settings.PROVIDER_IN_USE.lower() == "azure" else chat
 
 def _openie_extract(claim: str) -> List[Triple]:
     # ToDO!!!
@@ -58,7 +65,8 @@ def _llm_extract(claim: str) -> List[Triple]:
         ),
     }
     usr = {"role": "user", "content": claim}
-    msg = chat([sys, usr], functions=_FUNC_SCHEMA)
+    chat_func = get_chat_func()
+    msg = chat_func([sys, usr], functions=_FUNC_SCHEMA)
 
     if not getattr(msg, "tool_calls", None):
         return []

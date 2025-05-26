@@ -15,7 +15,7 @@ en-core-web-md==3.7.1      # ← ADD THIS LINE (or the latest 3.7.x model)
 sentence-transformers>=0.12
 
 # ── Gunicorn (optional, prod) ──────
-gunicorn>=21.2
+#gunicorn>=21.2
 
 # ── Caching ────────────────────────
 redis>=5.0
