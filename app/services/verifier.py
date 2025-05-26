@@ -7,10 +7,17 @@ import json
 from typing import List, Tuple
 
 from .openai_client import chat
+from .azure_client import chat_a
 from .models        import Triple, Edge
+
+from ..config      import Settings
+
+settings = Settings()
 
 LABELS = ("Supported", "Refuted", "Not Enough Info")
 
+def get_chat_func():
+    return chat_a if settings.PROVIDER_IN_USE.lower() == "azure" else chat
 
 class Verifier:
     """
@@ -59,7 +66,8 @@ class Verifier:
             ),
         }
 
-        reply = chat([system, user])
+        chat_func = get_chat_func()
+        reply = chat_func([system, user])
         # ----------------------------------------------------------------- #
         # Robust JSON read
         # ----------------------------------------------------------------- #

@@ -7,7 +7,7 @@ SPARQLWrapper>=2.0
 rapidfuzz>=3.6
 spacy>= 3.7
 # ── Gunicorn (optional, prod) ──────
-gunicorn>=21.2
+#gunicorn>=21.2
 
 # ── Caching ────────────────────────
 redis>=5.0
