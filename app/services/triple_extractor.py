@@ -13,17 +13,21 @@ from .models import Triple
                # starts an internal CoreNLP JVM
 
 from openie import StanfordOpenIE
+from app.services.openie_server import openie_client
 
 def _openie_extract(claim: str) -> List[Triple]:
     # ToDO!!!
-    with StanfordOpenIE() as client:
-        triples_raw = client.annotate(claim)
-        triples = []
+
+    triples_raw = openie_client.annotate(claim)
+    triples = []
+
     for t in triples_raw:
         # StanfordOpenIE returns dicts
         triples.append(Triple(subject=t['subject'], predicate=t['relation'], object=t['object']))
     print("OpenIE triples", triples)
     return triples
+
+
 
 # --------------------------------------------------------------------------- #
 # 1) GPT fallback
@@ -83,10 +87,10 @@ def parse_claim_to_triple(claim: str) -> Optional[Triple]:
     """
     triples = _openie_extract(claim)
     if len(triples) < 2:                         # 0 or 1 → use GPT fallback
-        print("open")
+        print("LLM Backup")
         triples = _llm_extract(claim)
         print(triples)
-    print("search", triples[0])
+    print("Search", triples[0])
     return triples[0] if triples else None
 
 
