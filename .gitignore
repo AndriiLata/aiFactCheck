@@ -1,6 +1,7 @@
 
-
+/.pyc
 /.env
 .__pycache__
-
+testing/Datasets/*
+!testing/Datasets/.gitkeep
 

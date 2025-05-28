@@ -75,14 +75,33 @@ def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
     return pd.DataFrame(results)
 
 from sklearn.metrics import classification_report, accuracy_score
-
+"""
 def print_metrics(df: pd.DataFrame):
-    """Displays classification metrics."""
+    # Displays classification metrics
     print("\nClassification Report:")
     print(classification_report(df["true_label"], df["predicted_label"],
                                 labels=["Supported", "Refuted", "Not Enough Info"]))
     print(f"Accuracy: {accuracy_score(df['true_label'], df['predicted_label']):.2f}")
+"""
+def print_metrics(df: pd.DataFrame):
+    """Displays and returns classification metrics."""
+    print("\nClassification Report:")
+    report = classification_report(df["true_label"], df["predicted_label"],
+                                   labels=["Supported", "Refuted", "Not Enough Info"],
+                                   output_dict=False)
+    print(report)
 
+    # Confusion matrix
+    print("\nPrediction Counts (Confusion Matrix):")
+    confusion = pd.crosstab(df["true_label"], df["predicted_label"], rownames=['Actual'], colnames=['Predicted'], dropna=False)
+    print(confusion)
+
+    return {
+        "classification_report": report,
+        "confusion_matrix": confusion.to_dict()
+    }
+
+import pickle
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -106,6 +125,11 @@ if __name__ == "__main__":
     print("[*] Sending samples to local /verify endpoint...\n")
     df_results = evaluate_via_api(samples)
 
-    print_metrics(df_results)
-    df_results.to_pickle(args.output)
-    print(f"[*] Results saved to: {args.output}")
+    metrics = print_metrics(df_results)
+    with open(args.output, "wb") as f:
+        pickle.dump({
+            "results": df_results,
+            "metrics": metrics
+        }, f)
+
+    print(f"[*] Results and metrics saved to: {args.output}")

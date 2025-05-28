@@ -38,11 +38,3 @@ def normalize_label(label: str) -> str:
         return "Refuted"
     return "Not Enough Info"
 
-#data=load_factkg_dataset("Datasets/factkg_train.pickle")
-#print(get_claim_entry_by_index(data, 3))
-
-import pandas as pd
-df = pd.read_pickle("Datasets/factkg_api_results.pkl")
-print(df.iloc[0])
-print(df.iloc[1])
-print(df.iloc[2])
