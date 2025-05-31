@@ -57,13 +57,13 @@ def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
                 evidence = raw_data.get("evidence", [])
             else:
                 print(f"[!] Error for claim: {claim[:50]}... -> Response status code: {response.status_code}")
-                label_pred = "NOT_ENOUGH_INFO"
+                label_pred = "Error"
                 reason = ""
                 triple = {}
                 evidence = []
         except Exception as e:
             print(f"[!] Error for claim: {claim[:50]}... -> {e}")
-            label_pred = "NOT_ENOUGH_INFO"
+            label_pred = "Error"
             reason = ""
             triple = {}
             evidence = []
