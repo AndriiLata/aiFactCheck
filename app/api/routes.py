@@ -38,6 +38,18 @@ def verify():  # → (dict, int)
     kg = KGClient()
     paths = kg.fetch_paths(s_uris, o_uris)
 
+    # LLM fallback if no evidence found
+    verifier = Verifier()
+    if not paths:
+        print("fallback: use LLM to classify the claim")
+        label, reason = verifier.llm_fallback_classify(claim, triple)
+        return jsonify({
+            "triple":   triple.__dict__,
+            "evidence": [],
+            "label":    label,
+            "reason":   reason,
+        }), HTTPStatus.OK
+    
     # 3) Rank the path, considering the claim
     ranker = EvidenceRanker(claim)
     evidence_paths = ranker.top_k(triple, paths, k=3)
@@ -46,7 +58,6 @@ def verify():  # → (dict, int)
 
 
     # 4) Verification step (GPT)
-    verifier = Verifier()
     label, reason = verifier.classify(claim, triple, best_path, score)
 
     return jsonify({

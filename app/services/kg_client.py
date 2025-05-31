@@ -17,9 +17,10 @@ settings = Settings()
 
 
 class KGClient:
-    def __init__(self) -> None:
+    def __init__(self, endpoint=None) -> None:
         # REACHES OUR LOCAL DBPEDIA SPARQL ENDPOINT
-        self._sparql = SPARQLWrapper(settings.DBPEDIA_ENDPOINT_LOCAL)
+        # Use the provided endpoint or default to local
+        self._sparql = SPARQLWrapper(endpoint or settings.DBPEDIA_ENDPOINT_LOCAL)
         self._sparql.setReturnFormat(JSON)
 
         # Optional: check endpoint health
@@ -71,6 +72,7 @@ class KGClient:
         *,
         limit_per_edge: int = 500,
         max_hops: int = 2,
+        fallback: bool = True,  # Add fallback as a parameter if not present
     ) -> List[List[Edge]]:
         """
         For every candidate (S, O) URI pair return 1-hop and 2-hop paths.
@@ -81,6 +83,17 @@ class KGClient:
 
         paths: List[List[Edge]] = []
 
+       # Fallback: If no paths and fallback is enabled, try public endpoint
+        if not paths and fallback and self._sparql.endpoint != settings.DBPEDIA_ENDPOINT_PUBLIC:
+            try:
+                public_client = KGClient(endpoint=settings.DBPEDIA_ENDPOINT_PUBLIC)
+                return public_client.fetch_paths(
+                    s_uris, o_uris, limit_per_edge=limit_per_edge, max_hops=max_hops, fallback=False
+                )
+            except Exception as e:
+                raise RuntimeError(f"Fallback to public DBpedia endpoint failed: {e}")
+
+            
         # All outgoing edges from S + incoming edges to O
         for s in s_uris:
             paths.extend([[e] for e in self._out_edges(s, limit_per_edge)])
