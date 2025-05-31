@@ -5,7 +5,7 @@ import pickle
 
 
 # Loads the FactKG dataset from a pickle file
-def loadfactkg_dataset(path: str) -> dict:
+def load_factkg_dataset(path: str) -> dict:
     with open(path, "rb") as f:
         data = pickle.load(f)
     return data

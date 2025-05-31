@@ -56,6 +56,7 @@ def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
                 triple = raw_data.get("triple", {})
                 evidence = raw_data.get("evidence", [])
             else:
+                print(f"[!] Error for claim: {claim[:50]}... -> Response status code: {response.status_code}")
                 label_pred = "NOT_ENOUGH_INFO"
                 reason = ""
                 triple = {}
@@ -100,13 +101,21 @@ def print_metrics(df: pd.DataFrame):
                             dropna=False)
     print(confusion)
 
+    avg_time = df['time_seconds'].mean()
+    print(f"\nAverage Time per Prediction: {avg_time:.3f} seconds")
+
     return {
         "classification_report": report,
-        "confusion_matrix": confusion.to_dict()
+        "confusion_matrix": confusion.to_dict(),
+        "average_time_per_prediction": avg_time
     }
 
 
 # Main function to run the testing pipeline and display the results
+
+# Important: To run the normal run.py script has to be started first and running for the same time
+# To do that you need to enable allow multiple instances for both configurations
+
 # Run with parameters --file Datasets/factkg_train.pickle --samples 100 --output --used_indices_path
 # --file path to dataset file
 # --samples number of samples to be tested; default=100
