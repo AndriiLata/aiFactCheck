@@ -20,5 +20,11 @@ sentence-transformers>=0.12
 # ── Caching ────────────────────────
 redis>=5.0
 
-# ── Fact extraction ────────────────
-stanford-openie>=1.3.2
+# ── Fact extraction (currently not in use) ────────────────
+#stanford-openie>=1.3.2
+
+# ── Testing pipeline ────────────────
+requests>=2.32.3
+pandas>=2.2.3
+scikit-learn>=1.5.2
+tqdm>=4.67.1

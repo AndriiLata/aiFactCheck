@@ -1,7 +1,21 @@
 import random
 from pathlib import Path
+from sklearn.metrics import classification_report
+import factkg_utils
+import argparse
+import requests
+from tqdm import tqdm
+import pandas as pd
+import time
+import pickle
+
+# Our server port adjust as necessary
+API_URL = "http://127.0.0.1:5000/verify"
 
 
+# Picks random instances out of a test set, stores them in a file
+# Input: len of dataset, num of samples to be drawn, a filepath to already used indices from the given dataset
+# Return: List of indices
 def pick_test_instances(len_dataset, num_of_samples=5, used_indices_path="Datasets/used_indices.txt", ):
     used_indices = set()
     if Path(used_indices_path).exists():
@@ -25,16 +39,9 @@ def pick_test_instances(len_dataset, num_of_samples=5, used_indices_path="Datase
     return selected_indices
 
 
-
-import factkg_utils
-import argparse
-import requests
-from tqdm import tqdm
-import pandas as pd
-import time
-
-API_URL = "http://127.0.0.1:5000/verify"  # Adjust if your server is on a different host/port
-
+# Evaluates the given claims using http calls
+# Input: A list of tuples with a claim and a label as strings
+# Return: A pandas dataframe consisting of the tracked stats for the evaluation
 def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
     results = []
 
@@ -74,15 +81,11 @@ def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
 
     return pd.DataFrame(results)
 
-from sklearn.metrics import classification_report, accuracy_score
-"""
-def print_metrics(df: pd.DataFrame):
-    # Displays classification metrics
-    print("\nClassification Report:")
-    print(classification_report(df["true_label"], df["predicted_label"],
-                                labels=["Supported", "Refuted", "Not Enough Info"]))
-    print(f"Accuracy: {accuracy_score(df['true_label'], df['predicted_label']):.2f}")
-"""
+
+# Function to display the metrics of a test run and calculate some stats
+# confusion matrix
+# Input: A pandas dataframe of the results
+# Return: Classification report and confusion matrix
 def print_metrics(df: pd.DataFrame):
     """Displays and returns classification metrics."""
     print("\nClassification Report:")
@@ -93,7 +96,8 @@ def print_metrics(df: pd.DataFrame):
 
     # Confusion matrix
     print("\nPrediction Counts (Confusion Matrix):")
-    confusion = pd.crosstab(df["true_label"], df["predicted_label"], rownames=['Actual'], colnames=['Predicted'], dropna=False)
+    confusion = pd.crosstab(df["true_label"], df["predicted_label"], rownames=['Actual'], colnames=['Predicted'],
+                            dropna=False)
     print(confusion)
 
     return {
@@ -101,7 +105,15 @@ def print_metrics(df: pd.DataFrame):
         "confusion_matrix": confusion.to_dict()
     }
 
-import pickle
+
+# Main function to run the testing pipeline and display the results
+# Run with parameters --file Datasets/factkg_train.pickle --samples 100 --output --used_indices_path
+# --file path to dataset file
+# --samples number of samples to be tested; default=100
+# --output path where output file should be stored; default="Datasets/factkg_api_results.pkl"
+# --used_indices_path path to file which specifies which indices have already been used,
+# After execution used indices stored here
+# default="Datasets/used_indices.txt"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
