@@ -1,9 +1,8 @@
-# app/api/routes.py
 from __future__ import annotations
 
 from flask import Blueprint, request, jsonify
 from http import HTTPStatus
-from typing import List # For type hinting
+from typing import List
 
 from app.services.triple_extractor import parse_claim_to_triple
 from app.services.kg_client import KGClient
@@ -22,7 +21,7 @@ def verify():  # → Tuple[dict, int]
         return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
 
     # 1) Triple extraction
-    extracted_triple: Triple | None = parse_claim_to_triple(claim) # Type hint
+    extracted_triple: Triple | None = parse_claim_to_triple(claim)
     if extracted_triple is None:
         return jsonify({"error": "Could not extract a semantic triple from the claim."}), HTTPStatus.UNPROCESSABLE_ENTITY
 
@@ -38,50 +37,80 @@ def verify():  # → Tuple[dict, int]
     o_wd_uris: List[str] = [c.wikidata_uri for c in o_candidates if c.wikidata_uri]
 
     if not (s_dbp_uris or s_wd_uris) or not (o_dbp_uris or o_wd_uris):
-
-        error_message = "Could not link entities to knowledge base URIs."
+        error_message = "Could not link entities to knowledge base URIs for the claim."
         if not (s_dbp_uris or s_wd_uris):
             error_message = f"Could not link subject '{extracted_triple.subject}' to any knowledge base URI."
         elif not (o_dbp_uris or o_wd_uris):
-             error_message = f"Could not link object '{extracted_triple.object}' to any knowledge base URI."
+            error_message = f"Could not link object '{extracted_triple.object}' to any knowledge base URI."
         
-        # Default to NEI if linking fails substantially
         return jsonify({
+            "claim": claim,
             "triple": extracted_triple.__dict__,
             "evidence": [],
-            "label": "Not Enough Info",
+            "label": "Not Enough Info", # Default to NEI if linking fails substantially
             "reason": error_message,
-        }), HTTPStatus.OK # Or UNPROCESSABLE_ENTITY if preferred for this case
-
+            "entity_linking": {
+                "subject_candidates": [c.__dict__ for c in s_candidates],
+                "object_candidates": [c.__dict__ for c in o_candidates]
+            }
+        }), HTTPStatus.OK
 
     # 3) Fetch paths from DBpedia and Wikidata
-    kg = KGClient()
-
+    # KGClient can be initialized with a specific dbp_endpoint if needed: kg = KGClient(dbp_endpoint="http://my-local-dbpedia:8890/sparql")
+    kg = KGClient() 
     paths: List[List[Edge]] = kg.fetch_paths(
         s_dbp_uris, s_wd_uris, 
         o_dbp_uris, o_wd_uris,
-        max_hops=2 # Default is 2, can be configured
+        max_hops=2, # Default is 2, can be configured in KGClient
+        try_public_dbp_fallback=True # Enable public DBpedia fallback if primary DBP endpoint fails/returns no DBP paths
     )
 
+    # Initialize Verifier once
+    verifier = Verifier()
+
+    # LLM fallback if no evidence paths are found from any KG
+    if not paths:
+        print(f"No paths found from KGs for claim: '{claim}'. Falling back to Verifier's direct classification.")
+        # Assuming Verifier.classify can handle empty evidence gracefully or you have a specific llm_fallback_classify
+        # For consistency, using classify with empty evidence:
+        label, reason = verifier.classify(claim, extracted_triple, [], 0.0)
+        return jsonify({
+            "claim": claim,
+            "triple":   extracted_triple.__dict__,
+            "evidence": [],
+            "label":    label,
+            "reason":   reason,
+            "entity_linking": {
+                "subject_candidates": [c.__dict__ for c in s_candidates],
+                "object_candidates": [c.__dict__ for c in o_candidates]
+            }
+        }), HTTPStatus.OK
+
     # 3.5) Rank the paths, considering the claim
-    ranker = EvidenceRanker(claim_text=claim) # Pass claim_text as named arg
-    # top_k for evidence paths fed to verifier; original code used k=3
-    evidence_paths: List[List[Edge]] = ranker.top_k(extracted_triple, paths, k=5) # Increased k for more evidence options
+    # Ensure EvidenceRanker's __init__ matches this call. Original was EvidenceRanker(claim_text: str)
+    ranker = EvidenceRanker(claim_text=claim) 
+    # Increased k for more evidence options, can be adjusted (e.g., to 3 as in main)
+    evidence_paths: List[List[Edge]] = ranker.top_k(extracted_triple, paths, k=5) 
 
-    # Select the best path for current response structure, or adapt verifier for multiple paths
-    best_path_ranked: List[Edge] = evidence_paths[0] if evidence_paths else []
-    score: float = ranker._score_path(extracted_triple, best_path_ranked) if best_path_ranked else 0.0
+    best_path_ranked: List[Edge] = []
+    score: float = 0.0
 
+    if evidence_paths:
+        best_path_ranked = evidence_paths[0]
+        # Assuming ranker._score_path is the method to get a single score for the best path
+        score = ranker._score_path(extracted_triple, best_path_ranked) 
+    else:
+        # If top_k returns empty, it means no paths were suitable or paths list was empty initially
+        print(f"No suitable evidence paths found after ranking for claim: '{claim}'.")
+        # Verification will proceed with empty evidence if best_path_ranked is empty.
 
     # 4) Verification step (GPT)
-    verifier = Verifier()
-    # The verifier takes the single 'best_path'. If multiple paths are desired for verification, Verifier needs adjustment.
     label, reason = verifier.classify(claim, extracted_triple, best_path_ranked, score)
 
     return jsonify({
         "claim": claim,
         "triple": extracted_triple.__dict__,
-        "evidence": [e.__dict__ for e in best_path_ranked], # Evidence is the best path
+        "evidence": [e.__dict__ for e in best_path_ranked],
         "all_top_evidence_paths": [[e.__dict__ for e in p] for p in evidence_paths],
         "label": label,
         "reason": reason,

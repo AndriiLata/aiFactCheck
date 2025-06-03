@@ -11,10 +11,11 @@ class Settings:
 
     OPENAI_PROVIDER = "openai"
     AZURE_PROVIDER = "azure"
-    PROVIDER_IN_USE = "openai"
+    PROVIDER_IN_USE = "azure"
 
-    DBPEDIA_ENDPOINT: str = os.getenv(
-        "DBPEDIA_ENDPOINT", "https://dbpedia.org/sparql"
+    DBPEDIA_ENDPOINT_PUBLIC: str = os.getenv(
+        "DBPEDIA_ENDPOINT_PUBLIC", "https://dbpedia.org/sparql"
+        
     )
 
     DBPEDIA_ENDPOINT_LOCAL: str = os.getenv(

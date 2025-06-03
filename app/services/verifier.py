@@ -4,6 +4,7 @@ LLM-based generator + verifier
 from __future__ import annotations
 
 import json
+import re
 from typing import List, Tuple
 
 from .openai_client import chat
@@ -87,3 +88,44 @@ class Verifier:
                     break
 
         return label, reason
+    
+    def llm_fallback_classify(self, claim: str, triple: Triple) -> tuple[str, str]:
+        chat_func = get_chat_func()
+        system = {
+            "role": "system",
+            "content": (
+                "You are an advanced fact-checking assistant with access to a large knowledge base. "
+                "When given a claim and its semantic triple, use your internal knowledge and logical reasoning "
+                "to determine if the claim is Supported, Refuted, or Not Enough Info. "
+                "Apply retrieval-augmented generation (RAG) techniques: recall relevant facts, reason step by step, "
+                "and make a best-effort judgment even if evidence is partial or indirect. "
+                "If you cannot find enough information after careful consideration, only then respond with Not Enough Info. "
+                "Always explain your reasoning in a concise paragraph."
+            ),
+        }
+        user = {
+            "role": "user",
+            "content": (
+                f"Claim: {claim}\n"
+                f"Triple: (S='{triple.subject}', P='{triple.predicate}', O='{triple.object}')\n\n"
+                "Respond with a JSON object {\"label\": ..., \"reason\": ...} "
+                "where label ∈ {Supported, Refuted, Not Enough Info}. "
+                "The reason must fit in one short paragraph and include your logical steps."
+            ),
+        }
+        reply = chat_func([system, user])
+        content = reply.content.strip()
+
+        # Try to extract JSON from code block if present
+        match = re.search(r'\{.*\}', content, re.DOTALL)
+        if match:
+            content = match.group(0)
+        try:
+            data = json.loads(content.replace("'", '"'))
+            return data.get("label", "Not Enough Info"), data.get("reason", "")
+        except Exception:
+            # Try to extract label from plain text
+            for lbl in ("Supported", "Refuted", "Not Enough Info"):
+                if lbl.lower() in content.lower():
+                    return lbl, content
+            return "Not Enough Info", "LLM could not provide a structured answer."
