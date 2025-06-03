@@ -56,3 +56,25 @@ python run.py
 
 - Runs a SPARQL `SELECT ?s ?p ?o` that finds triples where the entity is subject or object.
 - Returns up to 100 triples as JSON dicts.
+
+
+## 🧪 Virtuoso SPARQL Endpoint Quickstart (DBpedia)
+
+- Spin up a local Virtuoso SPARQL endpoint with Docker and preload it with a DBpedia Databus collection.
+
+Quickstart:
+
+```bash
+cd virtuoso-sparql-endpoint
+COLLECTION_URI=https://databus.dbpedia.org/dbpedia/collections/dbpedia-snapshot-2022-03 \
+VIRTUOSO_ADMIN_PASSWD=YourSecretPassword \
+docker-compose up
+```
+- After startup, your endpoint will be available at: http://localhost:8890/sparql
+
+📌 Tips:
+
+- Use the preview collection (/virtuoso-sparql-endpoint-quickstart-preview) for faster testing.
+- Large datasets may take hours to load.
+- Modify .env to configure ports, data directories, and collection URIs.
+- A more detailed README.md can be found [here](https://github.com/dbpedia/virtuoso-sparql-endpoint-quickstart/blob/master/README.md)
