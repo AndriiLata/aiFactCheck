@@ -56,12 +56,12 @@ python run.py
       "source_kg": "dbpedia"
     }
   ],
-  "all_top_evidence_paths": [....],
+  "all_top_evidence_paths": [],
   "label": "Supported",
   "reason": "The evidence path ... confirms that TUM is a German university.",
   "entity_linking": {
-    "subject_candidates": [...],
-    "object_candidates": [...]
+    "subject_candidates": [],
+    "object_candidates": []
   }
 }
 ```
