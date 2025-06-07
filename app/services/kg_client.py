@@ -103,8 +103,6 @@ class KGClient:
         self.initial_dbp_endpoint = dbp_endpoint
         if self.initial_dbp_endpoint is None:
             self.initial_dbp_endpoint = getattr(settings, 'DBPEDIA_ENDPOINT', None)
-        if self.initial_dbp_endpoint is None: # Fallback to local if primary default not set
-             self.initial_dbp_endpoint = getattr(settings, 'DBPEDIA_ENDPOINT_LOCAL', 'http://localhost:8890/sparql') # Default local
 
         self._dbp_sparql = SPARQLWrapper(self.initial_dbp_endpoint)
         self._dbp_sparql.setReturnFormat(JSON)
