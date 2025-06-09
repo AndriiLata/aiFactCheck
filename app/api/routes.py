@@ -34,7 +34,24 @@ def verify():
                 "entity_linking": None,
             }
         ), HTTPStatus.OK
+    
 
+    # --- FORCE LLM FALLBACK FOR TESTING ---
+    verifier = Verifier()
+    label, reason, evidence_list = verifier.llm_fallback_classify(claim, extracted)
+    return jsonify(
+        {
+            "claim": claim,
+            "triple": extracted.__dict__,
+            "evidence": evidence_list,
+            "label": label,
+            "reason": reason,
+            "entity_linking": None,
+        }
+    ), HTTPStatus.OK
+
+
+'''
     # 2 ── entity linking ---------------------------------------------------
     linker = EntityLinker()
     s_cands: List[EntityCandidate] = linker.link(extracted.subject, top_k=3)
@@ -66,32 +83,40 @@ def verify():
 
     verifier = Verifier()
 
-    if not paths:
-        label, reason = verifier.classify(claim, extracted, [], 0.0)
-        return jsonify(
-            {
-                "claim": claim,
-                "triple": extracted.__dict__,
-                "evidence": [],
-                "label": label,
-                "reason": reason,
-                "entity_linking": {
-                    "subject_candidates": [c.__dict__ for c in s_cands],
-                    "object_candidates": [c.__dict__ for c in o_cands],
-                },
-            }
-        ), HTTPStatus.OK
-
     # 4 ── rank evidence ----------------------------------------------------
-    ranker = EvidenceRanker(claim_text=claim, triple=extracted)
-    ranked: List[Tuple[List[Edge], float]] = ranker.top_k(paths, k=5)
+    if paths:
+        ranker = EvidenceRanker(claim_text=claim, triple=extracted)
+        ranked: List[Tuple[List[Edge], float]] = ranker.top_k(paths, k=5)
+        best_path, score = ranked[0]
+        all_top = [p for p, _ in ranked]
+        label, reason = verifier.classify(claim, extracted, best_path, score)
+    else:
+        best_path = []
+        all_top = []
+        label, reason = verifier.classify(claim, extracted, [], 0.0)
 
-    best_path, score = ranked[0]
-    all_top = [p for p, _ in ranked]
-
-    # 5 ── verification -----------------------------------------------------
-    label, reason = verifier.classify(claim, extracted, best_path, score)
-
+    # 5 ── LLM fallback if still not enough info ----------------------------
+    if label == "Not Enough Info":
+        label, reason, evidence_list = verifier.llm_fallback_classify(claim, extracted)
+        if evidence_list:
+            best_path = []  # No KG evidence, but we have web evidence
+            all_top = []
+            # Optionally, you can add evidence_list to the output as "evidence"
+            return jsonify(
+                {
+                    "claim": claim,
+                    "triple": extracted.__dict__,
+                    "evidence": evidence_list,
+                    "all_top_evidence_paths": [],
+                    "label": label,
+                    "reason": reason,
+                    "entity_linking": {
+                        "subject_candidates": [c.__dict__ for c in s_cands],
+                        "object_candidates": [c.__dict__ for c in o_cands],
+                    },
+                }
+            ), HTTPStatus.OK
+    
     return jsonify(
         {
             "claim": claim,
@@ -106,3 +131,7 @@ def verify():
             },
         }
     ), HTTPStatus.OK
+    
+'''
+
+
