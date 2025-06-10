@@ -1,7 +1,9 @@
 import pandas as pd
 import pickle
 import pipeline_testing
+import factkg_utils
 
+"""
 # Small testing file to open previous results
 with open("Datasets/factkg_api_results.pkl", "rb") as f:
     data = pickle.load(f)
@@ -20,3 +22,10 @@ print(df.iloc[1])
 combined = pd.concat([df, df400], axis=0)
 
 pipeline_testing.print_metrics(combined)
+"""
+
+#data = factkg_utils.load_factkg_dataset("Datasets/factkg_train.pickle")
+data=factkg_utils.load_fever_dataset("Datasets/fever_train.jsonl")
+samples = factkg_utils.get_claims_by_indices(data, pipeline_testing.pick_test_instances(100000,10))
+
+print(samples)
