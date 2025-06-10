@@ -38,7 +38,7 @@ def verify():
 
     # --- FORCE LLM FALLBACK FOR TESTING ---
     verifier = Verifier()
-    label, reason, evidence_list = verifier.llm_fallback_classify(claim, extracted)
+    label, reason, evidence_list, confidence_score = verifier.llm_fallback_classify(claim, extracted)
     return jsonify(
         {
             "claim": claim,
@@ -46,6 +46,7 @@ def verify():
             "evidence": evidence_list,
             "label": label,
             "reason": reason,
+            "confidence_score": confidence_score,
             "entity_linking": None,
         }
     ), HTTPStatus.OK

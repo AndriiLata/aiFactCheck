@@ -14,10 +14,11 @@ class Settings:
     AZURE_API_KEY: str = os.getenv("AZURE_API_KEY", "")
     AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
     SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
+    BRAVE_API_KEY: str = os.getenv("BRAVE_API_KEY", "")
 
 
     PROVIDER_IN_USE: Literal["openai", "azure"] = os.getenv(
-        "PROVIDER_IN_USE", "openai"
+        "PROVIDER_IN_USE", "azure"
     ).lower()
 
     # ---- Knowledge graphs ---------------------------------------------
