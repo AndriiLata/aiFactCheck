@@ -17,7 +17,7 @@ from ..core.crew.pipeline import verify_claim_crew
 
 
 @api_bp.route("/verify_crewAI", methods=["POST"])
-def verify_v2():
+def verify_crewAI():
     data = request.get_json(force=True)
     claim = data.get("claim")
     if not claim:
@@ -28,7 +28,7 @@ def verify_v2():
 
 
 @api_bp.route("/verify_rag", methods=["POST"])
-def verify():
+def verify_rag():
     data = request.get_json(force=True)
     claim = data.get("claim")
     if not claim:
