@@ -21,7 +21,7 @@ async def _run_async(claim: str) -> Dict:
     triple = retrieved.pop("triple", None)
 
     all_ev = retrieved["wikidata"] + retrieved["dbpedia"] + retrieved["web"]
-    syn_ev = synthesise(claim, all_ev, top_k=40)
+    syn_ev = synthesise(claim, all_ev, top_k=100)
 
     nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
     label, conf, annotated_evidence = aggregate(syn_ev, nli_out)

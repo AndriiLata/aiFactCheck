@@ -11,8 +11,8 @@ import tldextract
 
 _DEFAULTS = {
     # KGs
-    "wikidata.org": 1.0,
-    "dbpedia.org": 1.0,
+    "wikidata.org": 0.1,
+    "dbpedia.org": 0.1,
     # high quality news / refs
     ".gov": 0.95,
     ".edu": 0.95,
@@ -48,7 +48,7 @@ def score_for_url(url: str) -> float:
     Return trust score ∈ [0,1] for a URL or KG name.
     """
     if url in ("wikidata", "dbpedia"):
-        return 1.0
+        return 0.5
 
     ext = tldextract.extract(url)
     domain = f"{ext.domain}.{ext.suffix}" if ext.suffix else ext.domain

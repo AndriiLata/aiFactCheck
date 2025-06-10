@@ -31,7 +31,7 @@ def _aggregate(
             refute += weight
 
     total = support + refute
-    if total > 0.6 and max(support, refute) / total > 0.7:
+    if total > 0.6:
         label = "Supported" if support > refute else "Refuted"
     else:
         label = "Not Enough Info"

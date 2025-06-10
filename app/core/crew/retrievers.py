@@ -72,7 +72,7 @@ async def _collect_kg(
         s_wd=s_wd if which == "wikidata" else [],
         o_dbp=o_dbp if which == "dbpedia" else [],
         o_wd=o_wd if which == "wikidata" else [],
-        max_hops=1,
+        max_hops=2,
         limit_edge=max_edges,
     )
 
@@ -93,7 +93,7 @@ async def _collect_kg(
             {
                 "snippet": sentence,
                 "source": which,  # 'wikidata' | 'dbpedia'
-                "trust": 1.0,
+                "trust": 0.2,
             }
         )
     return ev

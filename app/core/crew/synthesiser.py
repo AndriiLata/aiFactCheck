@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer, util
 _MODEL = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def synthesise(claim: str, evidence: List[Dict], top_k: int = 40) -> List[Dict]:
+def synthesise(claim: str, evidence: List[Dict], top_k: int = 100) -> List[Dict]:
     if not evidence:
         return []
 
