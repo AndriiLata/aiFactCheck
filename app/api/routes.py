@@ -132,3 +132,27 @@ def verify():  # → Tuple[dict, int]
             "object_candidates": [c.__dict__ for c in o_candidates]
         }
     }), HTTPStatus.OK
+
+#The following are simplified routes for testing purposes only
+
+@api_bp.route("/extract_triple", methods=["POST"])
+def extract_triple():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    extracted_triple: Triple | None = parse_claim_to_triple(claim)
+
+    if extracted_triple is None:
+        return jsonify({
+            "claim": claim,
+            "triple": None,
+            "error": "Could not extract a semantic triple from the claim."
+        }), HTTPStatus.OK
+
+    return jsonify({
+        "claim": claim,
+        "triple": extracted_triple.__dict__
+    }), HTTPStatus.OK
