@@ -1,0 +1,780 @@
+from __future__ import annotations
+
+from http import HTTPStatus
+from typing import List, Tuple
+
+from flask import request, jsonify
+
+from . import api_bp
+from ..core.extraction.triple_extractor import parse_claim_to_triple
+from ..core.linking.entity_linker import EntityLinker
+from ..infrastructure.kg.kg_client import KGClient
+from ..core.ranking.evidence_ranker import EvidenceRanker
+from ..core.verification.verifier import Verifier
+from ..models import Triple, Edge, EntityCandidate
+
+
+@api_bp.route("/verify", methods=["POST"])
+def verify():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    # 1 ── triple extraction ------------------------------------------------
+    extracted: Triple | None = parse_claim_to_triple(claim)
+    if extracted is None:
+        return jsonify(
+            {
+                "claim": claim,
+                "triple": None,
+                "evidence": [],
+                "label": "Not Enough Info",
+                "reason": "Could not extract a semantic triple from the claim.",
+                "entity_linking": None,
+            }
+        ), HTTPStatus.OK
+
+    # 2 ── entity linking ---------------------------------------------------
+    linker = EntityLinker()
+    s_cands: List[EntityCandidate] = linker.link(extracted.subject, top_k=3)
+    o_cands: List[EntityCandidate] = linker.link(extracted.object, top_k=3)
+
+    s_dbp = [c.dbpedia_uri for c in s_cands if c.dbpedia_uri]
+    s_wd = [c.wikidata_uri for c in s_cands if c.wikidata_uri]
+    o_dbp = [c.dbpedia_uri for c in o_cands if c.dbpedia_uri]
+    o_wd = [c.wikidata_uri for c in o_cands if c.wikidata_uri]
+
+    if not (s_dbp or s_wd) or not (o_dbp or o_wd):
+        return jsonify(
+            {
+                "claim": claim,
+                "triple": extracted.__dict__,
+                "evidence": [],
+                "label": "Not Enough Info",
+                "reason": "Could not link entities to KG URIs.",
+                "entity_linking": {
+                    "subject_candidates": [c.__dict__ for c in s_cands],
+                    "object_candidates": [c.__dict__ for c in o_cands],
+                },
+            }
+        ), HTTPStatus.OK
+
+    # 3 ── KG paths ---------------------------------------------------------
+    kg = KGClient()
+    paths: List[List[Edge]] = kg.fetch_paths(s_dbp, s_wd, o_dbp, o_wd, max_hops=2)
+    print("finnished paths")
+    verifier = Verifier()
+
+    if not paths:
+        label, reason = verifier.classify(claim, extracted, [], 0.0)
+        return jsonify(
+            {
+                "claim": claim,
+                "triple": extracted.__dict__,
+                "evidence": [],
+                "label": label,
+                "reason": reason,
+                "entity_linking": {
+                    "subject_candidates": [c.__dict__ for c in s_cands],
+                    "object_candidates": [c.__dict__ for c in o_cands],
+                },
+            }
+        ), HTTPStatus.OK
+
+    # 4 ── rank evidence ----------------------------------------------------
+    print("ranking evidence")
+    ranker = EvidenceRanker(claim_text=claim, triple=extracted)
+    ranked: List[Tuple[List[Edge], float]] = ranker.top_k(paths, k=5)
+
+    best_path, score = ranked[0]
+    print(score)
+    all_top = [p for p, _ in ranked]
+
+    # 5 ── verification -----------------------------------------------------
+    label, reason = verifier.classify(claim, extracted, best_path, score)
+
+    return jsonify(
+        {
+            "claim": claim,
+            "triple": extracted.__dict__,
+            "evidence": [e.__dict__ for e in best_path],
+            "all_top_evidence_paths": [[e.__dict__ for e in p] for p in all_top],
+            "label": label,
+            "reason": reason,
+            "entity_linking": {
+                "subject_candidates": [c.__dict__ for c in s_cands],
+                "object_candidates": [c.__dict__ for c in o_cands],
+            },
+        }
+    ), HTTPStatus.OK
+
+from __future__ import annotations
+import json
+from typing import List, Optional
+
+from ...infrastructure.llm.llm_client import chat
+from ...models import Triple
+
+from hashlib import sha256
+
+cache = {}
+
+_FUNC_SCHEMA = [
+    {
+        "name": "extract_triples",
+        "description": "Extract ONE OR MORE factual triples from the claim.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "triples": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "subject": {"type": "string"},
+                            "predicate": {"type": "string"},
+                            "object": {"type": "string"},
+                        },
+                        "required": ["subject", "predicate", "object"],
+                    },
+                }
+            },
+            "required": ["triples"],
+        },
+    }
+]
+
+
+def _llm_extract(claim: str) -> List[Triple]:
+    key = sha256(claim.encode()).hexdigest()
+    if key in cache:
+        return cache[key]
+    sys = {
+        "role": "system",
+        "content": (
+            "You are a precise OpenIE system. Return ONLY a tool call that "
+            "extracts every factual triple in the claim."
+        ),
+    }
+    usr = {"role": "user", "content": claim}
+    msg = chat([sys, usr], functions=_FUNC_SCHEMA)
+
+    if not getattr(msg, "tool_calls", None):
+        return []
+
+    args = json.loads(msg.tool_calls[0].function.arguments)
+    
+    cache[key] = [Triple(**t) for t in args.get("triples", [])]
+    return [Triple(**t) for t in args.get("triples", [])]
+
+
+# --------------------------------------------------------------------- #
+# Public helper
+# --------------------------------------------------------------------- #
+def parse_claim_to_triple(claim: str) -> Optional[Triple]:
+
+    triples = _llm_extract(claim)
+
+    return triples[0] if triples else None
+
+from __future__ import annotations
+
+from typing import List, Tuple
+
+import spacy
+from sentence_transformers import SentenceTransformer, util
+
+from ...models import Triple, Edge
+
+
+def _last(fragment: str) -> str:
+    return fragment.split("/")[-1].split("#")[-1]
+
+
+class EvidenceRanker:
+    """
+    Scores KG paths against the claim.
+    """
+
+    _nlp = spacy.load("en_core_web_md")
+    _model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    def __init__(self, *, claim_text: str, triple: Triple) -> None:
+        self._claim_emb = EvidenceRanker._model.encode(claim_text, convert_to_tensor=True)
+        self._subj_doc = EvidenceRanker._nlp(triple.subject)
+        self._obj_doc = EvidenceRanker._nlp(triple.object)
+
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _path_to_text(path: List[Edge]) -> str:
+        if not path:
+            return ""
+        return " ".join(
+            [_last(path[0].subject)]
+            + [f"{_last(e.predicate)} {_last(e.object)}" for e in path]
+        )
+
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def is_weak_predicate(pred: str) -> bool:
+        return any(keyword in pred for keyword in [
+            "wikiPage", "sameAs", "seeAlso", "externalLink", "redirects",
+            "label", "comment", "subject", "page", "type", "url"
+        ])
+
+    # ------------------------------------------------------------------ #
+    def top_k(self, paths: List[List[Edge]], *, k: int = 3) -> List[Tuple[List[Edge], float]]:
+        if not paths:
+            return []
+
+        # Filter out owl:sameAs paths
+        filtered = [
+            p for p in paths
+                if not (self.is_weak_predicate(p[0].predicate) or self.is_weak_predicate(p[-1].predicate))
+        ]       
+        if not filtered:
+            return []
+
+        # SentenceTransformer encoding and similarity
+        texts = [self._path_to_text(p) for p in filtered]
+        embs = EvidenceRanker._model.encode(texts, convert_to_tensor=True, batch_size=32)
+        sent_sims = util.pytorch_cos_sim(self._claim_emb, embs)[0]
+
+        # Pre-rank top 100 by Sentence-BERT only
+        scored_sent_only = [(float(sent_sims[idx]), path) for idx, path in enumerate(filtered)]
+        scored_sent_only.sort(key=lambda x: x[0], reverse=True)
+        top_candidates = scored_sent_only[:100]
+
+        # Apply SpaCy similarity only on top 100
+        scored: List[Tuple[float, List[Edge]]] = []
+        for sim_score, path in top_candidates:
+            start = _last(path[0].subject)
+            end = _last(path[-1].object)
+            subj_sim = self._subj_doc.similarity(EvidenceRanker._nlp(start))
+            obj_sim = self._obj_doc.similarity(EvidenceRanker._nlp(end))
+            final_score = sim_score * 0.5 + subj_sim * 0.25 + obj_sim * 0.25
+            scored.append((final_score, path))
+            print(f"SBERT: {sim_score:.4f}, Subj: {subj_sim:.4f}, Obj: {obj_sim:.4f}")
+
+        # Return top-k
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [(p, s) for s, p in scored[:k]]
+
+from __future__ import annotations
+
+import urllib.parse
+from typing import List, Tuple, Optional
+
+import requests
+
+from ...models import EntityCandidate
+
+
+class EntityLinker:
+    """
+    Resolve a surface form to Wikidata / DBpedia URIs with simple heuristics.
+    """
+
+    _WD_API = "https://www.wikidata.org/w/api.php"
+    _DBP_SPARQL = "https://dbpedia.org/sparql"
+    _DBP_LOOKUP = "https://lookup.dbpedia.org/api/search"
+    _SPOTLIGHT = "https://api.dbpedia-spotlight.org/en/annotate"
+    _TIMEOUT = 6  # s
+
+    # ------------------------------------------------------------------ #
+    # Wikidata helpers
+    # ------------------------------------------------------------------ #
+    def _wd_search(self, surface: str, *, max_hits: int) -> List[str]:
+        params = dict(
+            action="wbsearchentities",
+            search=surface,
+            language="en",
+            limit=max_hits,
+            format="json",
+        )
+        r = requests.get(self._WD_API, params=params, timeout=self._TIMEOUT)
+        r.raise_for_status()
+        return [item["id"] for item in r.json().get("search", [])]
+
+    def _wd_to_dbp(self, qid: str) -> Optional[str]:
+        query = (
+            "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n"
+            "SELECT ?dbp WHERE {\n"
+            f"  ?dbp owl:sameAs <http://www.wikidata.org/entity/{qid}> .\n"
+            "  FILTER(STRSTARTS(STR(?dbp), \"http://dbpedia.org/resource/\"))\n"
+            "} LIMIT 1"
+        )
+        r = requests.get(
+            self._DBP_SPARQL,
+            params={"query": query, "format": "application/json"},
+            timeout=self._TIMEOUT,
+        )
+        r.raise_for_status()
+        bindings = r.json().get("results", {}).get("bindings", [])
+        return bindings[0]["dbp"]["value"] if bindings else None
+
+    def _wd_lookup(self, surface: str, *, max_hits: int) -> List[EntityCandidate]:
+        out: List[EntityCandidate] = []
+        for rank, qid in enumerate(self._wd_search(surface, max_hits=max_hits)):
+            wikidata_uri = f"http://www.wikidata.org/entity/{qid}"
+            dbpedia_uri = self._wd_to_dbp(qid)
+            score = 1.0 - rank / max(max_hits, 1)
+            out.append(
+                EntityCandidate(
+                    surface_form=surface,
+                    dbpedia_uri=dbpedia_uri,
+                    wikidata_uri=wikidata_uri,
+                    score=score,
+                )
+            )
+            if len(out) >= max_hits:
+                break
+        return out
+
+    # ------------------------------------------------------------------ #
+    # DBpedia Lookup
+    # ------------------------------------------------------------------ #
+    def _dbp_lookup(self, surface: str, *, max_hits: int) -> List[EntityCandidate]:
+        r = requests.get(
+            self._DBP_LOOKUP,
+            params=dict(query=surface, maxResults=max_hits, format="JSON"),
+            timeout=self._TIMEOUT,
+        )
+        r.raise_for_status()
+        docs = r.json().get("docs", [])
+        out: List[EntityCandidate] = []
+
+        for rank, ent in enumerate(docs):
+            # ---- extract URI ------------------------------------------------
+            uri_list = ent.get("resource") or ent.get("uri") or ent.get("id") or []
+            if not uri_list:
+                continue
+            uri = uri_list[0]
+
+            # ---- extract / normalise score ---------------------------------
+            raw_score = ent.get("score")
+            if isinstance(raw_score, list) and raw_score:
+                raw_score = raw_score[0]
+            try:
+                score = float(raw_score)
+            except (TypeError, ValueError):
+                score = 1.0 - rank / max(max_hits, 1)  # fallback
+
+            out.append(EntityCandidate(surface_form=surface, dbpedia_uri=uri, score=score))
+
+        return out
+
+    def _spotlight(self, surface: str, *, max_hits: int) -> List[EntityCandidate]:
+        r = requests.get(
+            self._SPOTLIGHT,
+            params=dict(text=surface, confidence=0.35),
+            headers={"Accept": "application/json"},
+            timeout=self._TIMEOUT,
+        )
+        r.raise_for_status()
+        resources = r.json().get("Resources", [])
+        cands: List[Tuple[str, float]] = [
+            (res["@URI"], float(res["@similarityScore"]))
+            for res in resources
+            if res.get("@surfaceForm", "").lower() == surface.lower()
+        ]
+        cands.sort(key=lambda x: x[1], reverse=True)
+        return [
+            EntityCandidate(surface_form=surface, dbpedia_uri=uri, score=score)
+            for uri, score in cands[:max_hits]
+        ]
+
+    # ------------------------------------------------------------------ #
+    # Public
+    # ------------------------------------------------------------------ #
+    def link(self, surface: str, *, top_k: int = 3) -> List[EntityCandidate]:
+        surface = surface.strip()
+        if not surface:
+            return []
+
+        # 1. Wikidata pipeline
+        cands = self._wd_lookup(surface, max_hits=top_k)
+
+        # 2. DBpedia Lookup fallback
+        if not cands:
+            cands = self._dbp_lookup(surface, max_hits=top_k)
+
+        # 3. Spotlight fallback
+        if not cands:
+            cands = self._spotlight(surface, max_hits=top_k)
+
+        # 4. Heuristic – last resort
+        if not cands or not any(c.dbpedia_uri for c in cands):
+            uri = f"http://dbpedia.org/resource/{urllib.parse.quote(surface.replace(' ', '_'))}"
+            cands.append(EntityCandidate(surface_form=surface, dbpedia_uri=uri, score=0.2))
+
+        cands.sort(key=lambda c: c.score, reverse=True)
+        return cands[:top_k]
+
+from __future__ import annotations
+
+import json
+from typing import List, Tuple
+
+from ...infrastructure.llm.llm_client import chat
+from ...models import Triple, Edge
+
+LABELS = ("Supported", "Refuted", "Not Enough Info")
+
+
+class Verifier:
+    """
+    Single GPT call that reasons over claim + evidence.
+    """
+
+    def classify(
+        self,
+        claim: str,
+        triple: Triple,
+        evidence: List[Edge],
+        support_score: float,
+    ) -> Tuple[str, str]:
+        ev = "\n".join(
+            f"{e.subject.split('/')[-1]} —[{e.predicate.split('/')[-1]}]→ {e.object.split('/')[-1]}"
+            for e in evidence
+        ) or "No evidence retrieved."
+
+        system = {
+            "role": "system",
+            "content": (
+                "You are a factual consistency expert. Decide whether the claim "
+                "is Supported, Refuted, or Not Enough Info based ONLY on the "
+                "evidence."
+            ),
+        }
+        user = {
+            "role": "user",
+            "content": (
+                f"Claim: {claim}\n\n"
+                f"Triple: (S='{triple.subject}', P='{triple.predicate}', O='{triple.object}')\n"
+                f"Evidence paths:\n{ev}\n\n"
+                "Respond with a JSON object {\"label\": ..., \"reason\": ...} "
+                "where label ∈ {Supported, Refuted, Not Enough Info}.  "
+                "Keep the reason to one short paragraph."
+            ),
+        }
+
+        reply = chat([system, user])
+
+        try:
+            data = json.loads(reply.content.strip())
+            if data.get("label") in LABELS:
+                return data["label"], data.get("reason", "")
+        except Exception:
+            pass
+
+        # fallback – try to detect label in plain text
+        txt = reply.content.strip()
+        for lbl in LABELS:
+            if lbl.lower() in txt.lower():
+                return lbl, txt
+        return "Not Enough Info", "The LLM could not determine a definitive answer."
+
+from __future__ import annotations
+from typing import List, Dict, Any
+
+from SPARQLWrapper import SPARQLWrapper, JSON
+
+from ...models import Edge
+from ...config import Settings
+
+settings = Settings()
+
+
+class DBpediaClient:
+    """
+    Thin wrapper for a DBpedia SPARQL endpoint.
+    """
+
+    _UA = "FactVerificationPipeline/0.2 (DBpedia Client; https://example.com)"
+
+    def __init__(self, *, endpoint: str | None = None, timeout_s: int = 15) -> None:
+        self.endpoint = endpoint or settings.DBPEDIA_ENDPOINT
+        self._sparql = SPARQLWrapper(self.endpoint)
+        self._sparql.setReturnFormat(JSON)
+        self._sparql.setTimeout(timeout_s)
+        self._sparql.addCustomHttpHeader("User-Agent", self._UA)
+        self._sparql.addCustomHttpHeader("Accept", "application/sparql-results+json")
+
+    # ------------------------------------------------------------------ #
+    def _q(self, q: str) -> List[Dict[str, Any]]:
+        try:
+            self._sparql.setQuery(q)
+            return self._sparql.queryAndConvert()["results"]["bindings"]
+        except Exception as exc:
+            print(f"[DBpedia] SPARQL failed: {exc}")
+            return []
+
+    # ------------------------------------------------------------------ #
+    def fetch_outgoing_edges(self, entity: str, limit: int) -> List[Edge]:
+        q = f"SELECT ?p ?o WHERE {{ <{entity}> ?p ?o }} LIMIT {limit}"
+        return [
+            Edge(entity, row["p"]["value"], row["o"]["value"], source_kg="dbpedia")
+            for row in self._q(q)
+        ]
+
+    def fetch_incoming_edges(self, entity: str, limit: int) -> List[Edge]:
+        q = f"SELECT ?s ?p WHERE {{ ?s ?p <{entity}> }} LIMIT {limit}"
+        return [
+            Edge(row["s"]["value"], row["p"]["value"], entity, source_kg="dbpedia")
+            for row in self._q(q)
+        ]
+
+    def fetch_two_hop_paths(self, s_uri: str, o_uri: str, limit: int) -> List[List[Edge]]:
+        q = f"""
+        SELECT ?p1 ?x ?p2 WHERE {{
+            <{s_uri}> ?p1 ?x .
+            ?x ?p2 <{o_uri}> .
+            FILTER isIRI(?x)
+        }} LIMIT {limit}
+        """
+        paths: List[List[Edge]] = []
+        for r in self._q(q):
+            mid = r["x"]["value"]
+            paths.append(
+                [
+                    Edge(s_uri, r["p1"]["value"], mid, source_kg="dbpedia"),
+                    Edge(mid, r["p2"]["value"], o_uri, source_kg="dbpedia"),
+                ]
+            )
+        return paths
+
+from __future__ import annotations
+
+import itertools
+from typing import List
+
+from .dbpedia_client import DBpediaClient
+from .wikidata_client import WikidataQueryClient
+from ...models import Edge
+
+
+class KGClient:
+    """
+    Coordinates DBpedia + Wikidata queries and returns 1- or 2-hop paths.
+    """
+
+    def __init__(
+        self,
+        *,
+        dbp_endpoint: str | None = None,
+        dbp_timeout_s: int = 15,
+        wd_timeout_s: int = 20,
+    ) -> None:
+        self._dbp = DBpediaClient(endpoint=dbp_endpoint, timeout_s=dbp_timeout_s)
+        self._wd = WikidataQueryClient(timeout_s=wd_timeout_s)
+
+    # ------------------------------------------------------------------ #
+    def fetch_paths(
+        self,
+        s_dbp: List[str],
+        s_wd: List[str],
+        o_dbp: List[str],
+        o_wd: List[str],
+        *,
+        limit_edge: int = 10000,
+        limit_two_hop: int = 10000,
+        max_hops: int = 2,
+    ) -> List[List[Edge]]:
+        paths: List[List[Edge]] = []
+
+        # ---- DBpedia ---------------------------------------------------
+        print("fetching subject paths")
+        for s in s_dbp:
+            paths.extend([[e] for e in self._dbp.fetch_outgoing_edges(s, limit_edge)])
+        print("fetching object paths")
+        for o in o_dbp:
+            paths.extend([[e] for e in self._dbp.fetch_incoming_edges(o, limit_edge)])
+        print("fetching 2 hop paths")
+
+        if max_hops >= 2:
+            for s, o in itertools.product(s_dbp, o_dbp):
+                if s != o:
+                    paths.extend(self._dbp.fetch_two_hop_paths(s, o, limit_two_hop))
+        print("fetched DBPedia")
+        # ---- Wikidata --------------------------------------------------
+        for s in s_wd:
+            paths.extend([[e] for e in self._wd.fetch_outgoing_edges(s, limit_edge)])
+        for o in o_wd:
+            paths.extend([[e] for e in self._wd.fetch_incoming_edges(o, limit_edge)])
+
+        if max_hops >= 2:
+            for s, o in itertools.product(s_wd, o_wd):
+                if s != o:
+                    paths.extend(self._wd.fetch_two_hop_paths(s, o, limit_two_hop))
+
+        return paths
+
+from __future__ import annotations
+from typing import List, Dict, Any
+
+from SPARQLWrapper import SPARQLWrapper, JSON
+
+from ...models import Edge
+
+
+class WikidataQueryClient:
+    """
+    Thin wrapper for the Wikidata public SPARQL endpoint.
+    """
+
+    _EP = "https://query.wikidata.org/sparql"
+    _UA = "FactVerificationPipeline/0.2 (Wikidata Client; https://example.com)"
+
+    def __init__(self, *, timeout_s: int = 20) -> None:
+        self._sparql = SPARQLWrapper(self._EP)
+        self._sparql.setReturnFormat(JSON)
+        self._sparql.setTimeout(timeout_s)
+        self._sparql.addCustomHttpHeader("User-Agent", self._UA)
+        self._sparql.addCustomHttpHeader("Accept", "application/sparql-results+json")
+
+    # ------------------------------------------------------------------ #
+    def _q(self, q: str) -> List[Dict[str, Any]]:
+        try:
+            self._sparql.setQuery(q)
+            return self._sparql.queryAndConvert()["results"]["bindings"]
+        except Exception as exc:  # pragma: no cover – network
+            print(f"[Wikidata] SPARQL failed: {exc}")
+            return []
+
+    # ------------------------------------------------------------------ #
+    def fetch_outgoing_edges(self, entity: str, limit: int) -> List[Edge]:
+        q = f"SELECT ?p ?o WHERE {{ <{entity}> ?p ?o }} LIMIT {limit}"
+        return [
+            Edge(entity, row["p"]["value"], row["o"]["value"], source_kg="wikidata")
+            for row in self._q(q)
+        ]
+
+    def fetch_incoming_edges(self, entity: str, limit: int) -> List[Edge]:
+        q = f"SELECT ?s ?p WHERE {{ ?s ?p <{entity}> }} LIMIT {limit}"
+        return [
+            Edge(row["s"]["value"], row["p"]["value"], entity, source_kg="wikidata")
+            for row in self._q(q)
+        ]
+
+    def fetch_two_hop_paths(self, s_uri: str, o_uri: str, limit: int) -> List[List[Edge]]:
+        q = f"""
+        SELECT ?p1 ?x ?p2 WHERE {{
+            <{s_uri}> ?p1 ?x .
+            ?x ?p2 <{o_uri}> .
+            FILTER isIRI(?x)
+        }} LIMIT {limit}
+        """
+        paths: List[List[Edge]] = []
+        for r in self._q(q):
+            mid = r["x"]["value"]
+            paths.append(
+                [
+                    Edge(s_uri, r["p1"]["value"], mid, source_kg="wikidata"),
+                    Edge(mid, r["p2"]["value"], o_uri, source_kg="wikidata"),
+                ]
+            )
+        return paths
+
+from __future__ import annotations
+from typing import List, Dict, Optional
+
+from ...config import Settings
+
+settings = Settings()
+
+if settings.PROVIDER_IN_USE == "azure":
+    # Azure OpenAI
+    from openai import AzureOpenAI as _OpenAIClient
+
+    _CLIENT = _OpenAIClient(
+        api_version="2025-01-01-preview",
+        azure_endpoint=settings.AZURE_ENDPOINT,
+        api_key=settings.AZURE_API_KEY,
+    )
+    _MODEL = "gpt-4o"
+else:
+    # vanilla OpenAI
+    from openai import OpenAI as _OpenAIClient
+
+    _CLIENT = _OpenAIClient(api_key=settings.OPENAI_API_KEY)
+    _MODEL = "gpt-4o-mini"  # cheap chat model
+
+_MAX_TOKENS = 4096
+
+
+def chat(messages: List[Dict], functions: Optional[List[Dict]] = None):
+    """
+    Unified chat wrapper – same call-signature regardless of provider.
+    """
+    kwargs = {
+        "model": _MODEL,
+        "messages": messages,
+        "temperature": 0,
+        "max_tokens": _MAX_TOKENS,
+    }
+
+    if functions:
+        kwargs["tools"] = [{"type": "function", "function": f} for f in functions]
+        kwargs["tool_choice"] = "auto"
+
+    resp = _CLIENT.chat.completions.create(**kwargs)
+    return resp.choices[0].message
+
+from flask import Flask
+from dotenv import load_dotenv
+
+from .config import Settings
+from .api import api_bp
+
+
+def create_app() -> Flask:
+    """
+    Minimal Flask application factory.
+    """
+    load_dotenv()
+
+    app = Flask(__name__)
+    app.config.from_object(Settings())  # type: ignore[arg-type]
+
+    # blueprints
+    app.register_blueprint(api_bp, url_prefix="/api")
+
+    return app
+
+from __future__ import annotations
+import os
+from functools import cached_property
+from typing import Literal
+
+
+class Settings:
+    """
+    Centralised runtime configuration pulled from environment variables.
+    """
+
+    # ---- LLM -----------------------------------------------------------
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    AZURE_API_KEY: str = os.getenv("AZURE_API_KEY", "")
+    AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
+
+    PROVIDER_IN_USE: Literal["openai", "azure"] = os.getenv(
+        "PROVIDER_IN_USE", "openai"
+    ).lower()
+
+    # ---- Knowledge graphs ---------------------------------------------
+    DBPEDIA_ENDPOINT: str = os.getenv(
+        "DBPEDIA_ENDPOINT", "https://dbpedia.org/sparql"
+    )
+    DBPEDIA_ENDPOINT_PUBLIC: str = os.getenv(
+        "DBPEDIA_ENDPOINT_PUBLIC", "https://dbpedia.org/sparql"
+    )
+
+    # -------------------------------------------------------------------
+    JSON_SORT_KEYS = False  # keep original order in Flask jsonify
+
+    # convenience
+    @cached_property
+    def openai_headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.OPENAI_API_KEY}"}

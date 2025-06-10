@@ -63,7 +63,7 @@ def verify():
     # 3 ── KG paths ---------------------------------------------------------
     kg = KGClient()
     paths: List[List[Edge]] = kg.fetch_paths(s_dbp, s_wd, o_dbp, o_wd, max_hops=2)
-
+    
     verifier = Verifier()
 
     if not paths:
@@ -90,7 +90,9 @@ def verify():
     all_top = [p for p, _ in ranked]
 
     # 5 ── verification -----------------------------------------------------
-    label, reason = verifier.classify(claim, extracted, best_path, score)
+    top_paths = [p for p, _ in ranked[:5]]
+    label, reason = verifier.classify(claim, extracted, top_paths)
+
 
     return jsonify(
         {
