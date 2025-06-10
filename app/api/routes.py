@@ -64,7 +64,7 @@ def verify():
     ), HTTPStatus.OK
 
 
-@api_bp.route("/verify_webcheck", methods=["POST"])
+@api_bp.route("/verify", methods=["POST"])
 def verify():
     data = request.get_json(force=True)
     claim = data.get("claim")
