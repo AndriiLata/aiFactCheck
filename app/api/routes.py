@@ -15,7 +15,8 @@ from ..core.verification.web_verifier import WebVerifier
 from ..models import Triple, Edge, EntityCandidate
 from ..core.crew.pipeline import verify_claim_crew
 
-@api_bp.route("/verify_v2", methods=["POST"])
+
+@api_bp.route("/verify_crewAI", methods=["POST"])
 def verify_v2():
     data = request.get_json(force=True)
     claim = data.get("claim")
@@ -25,7 +26,8 @@ def verify_v2():
     out = verify_claim_crew(claim)
     return jsonify(out), HTTPStatus.OK
 
-@api_bp.route("/verify", methods=["POST"])
+
+@api_bp.route("/verify_rag", methods=["POST"])
 def verify():
     data = request.get_json(force=True)
     claim = data.get("claim")
@@ -62,7 +64,27 @@ def verify():
     ), HTTPStatus.OK
 
 
-'''
+@api_bp.route("/verify_webcheck", methods=["POST"])
+def verify():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    # 1 ── triple extraction ------------------------------------------------
+    extracted: Triple | None = parse_claim_to_triple(claim)
+    if extracted is None:
+        return jsonify(
+            {
+                "claim": claim,
+                "triple": None,
+                "evidence": [],
+                "label": "Not Enough Info",
+                "reason": "Could not extract a semantic triple from the claim.",
+                "entity_linking": None,
+            }
+        ), HTTPStatus.OK
+
     # 2 ── entity linking ---------------------------------------------------
     linker = EntityLinker()
     s_cands: List[EntityCandidate] = linker.link(extracted.subject, top_k=3)
@@ -142,7 +164,5 @@ def verify():
             },
         }
     ), HTTPStatus.OK
-    
-'''
 
 
