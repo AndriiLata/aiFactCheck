@@ -13,7 +13,17 @@ from ..core.ranking.evidence_ranker import EvidenceRanker
 from ..core.verification.verifier import Verifier
 from ..core.verification.web_verifier import WebVerifier
 from ..models import Triple, Edge, EntityCandidate
+from ..core.crew.pipeline import verify_claim_crew
 
+@api_bp.route("/verify_v2", methods=["POST"])
+def verify_v2():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    out = verify_claim_crew(claim)
+    return jsonify(out), HTTPStatus.OK
 
 @api_bp.route("/verify", methods=["POST"])
 def verify():
