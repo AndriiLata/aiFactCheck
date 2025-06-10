@@ -8,20 +8,12 @@ SPARQLWrapper>=2.0
 rapidfuzz>=3.6
 
 # ── NLP ────────────────────────────
-spacy>=3.7                 # keep only one spacy entry
-en-core-web-md==3.7.1      # ← ADD THIS LINE (or the latest 3.7.x model)
-# may not load like this. ->> You might need to run `python -m spacy download en_core_web_md` separately.
+spacy>=3.7
 
 sentence-transformers>=0.12
 
-# ── Gunicorn (optional, prod) ──────
-#gunicorn>=21.2
-
 # ── Caching ────────────────────────
 redis>=5.0
-
-# ── Fact extraction (currently not in use) ────────────────
-#stanford-openie>=1.3.2
 
 # ── Testing pipeline ────────────────
 requests>=2.32.3
@@ -30,4 +22,4 @@ scikit-learn>=1.5.2
 tqdm>=4.67.1
 
 # ── RAG ────────────────
-requests
+requests>=2.32.3
