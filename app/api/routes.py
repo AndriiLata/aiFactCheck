@@ -16,7 +16,7 @@ from ..models import Triple, Edge, EntityCandidate
 
 
 @api_bp.route("/verify_rag", methods=["POST"])
-def verify():
+def verify_rag():
     data = request.get_json(force=True)
     claim = data.get("claim")
     if not claim:
