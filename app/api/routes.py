@@ -11,6 +11,7 @@ from ..core.linking.entity_linker import EntityLinker
 from ..infrastructure.kg.kg_client import KGClient
 from ..core.ranking.evidence_ranker import EvidenceRanker
 from ..core.verification.verifier import Verifier
+from ..core.verification.web_verifier import WebVerifier
 from ..models import Triple, Edge, EntityCandidate
 
 
@@ -37,8 +38,8 @@ def verify():
     
 
     # --- FORCE LLM FALLBACK FOR TESTING ---
-    verifier = Verifier()
-    label, reason, evidence_list = verifier.llm_fallback_classify(claim, extracted)
+    web_verifier = WebVerifier()
+    label, reason, evidence_list = web_verifier.verify(claim, extracted)
     return jsonify(
         {
             "claim": claim,
