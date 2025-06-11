@@ -21,7 +21,7 @@ class WebVerifier:
     """
 
     def __init__(self, num_results: int = 100):
-        self.serp_api_key = settings.SERPAPI_KEY
+        self.serp_api_key = settings.SEARCHAPI_KEY
         self.num_results = num_results
 
 
@@ -58,7 +58,7 @@ class WebVerifier:
             "num": self.num_results,
         }
         try:
-            resp = requests.get("https://serpapi.com/search", params=params, timeout=20)
+            resp = requests.get("https://www.searchapi.io/api/v1/search", params=params, timeout=20)
             resp.raise_for_status()
             data = resp.json()
             results = data.get("organic_results", [])

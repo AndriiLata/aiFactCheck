@@ -14,6 +14,17 @@ from ..core.verification.verifier import Verifier
 from ..core.verification.web_verifier import WebVerifier
 from ..models import Triple, Edge, EntityCandidate
 from ..core.crew.pipeline import verify_claim_crew
+from ..core.crew.pipeline_paraphrase import verify_claim_paraphrased
+
+@api_bp.route("/verify_web_only", methods=["POST"])
+def verify_web_only():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    out = verify_claim_paraphrased(claim)
+    return jsonify(out), HTTPStatus.OK
 
 
 @api_bp.route("/verify_crewAI", methods=["POST"])
