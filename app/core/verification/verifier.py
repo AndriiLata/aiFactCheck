@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import requests
 from typing import List, Tuple
@@ -142,6 +141,7 @@ class Verifier:
             "Explain your reasoning in one paragraph. "
             "Respond with a JSON object: {{\"label\": ..., \"reason\": ...}}."
         )
+
 
         # 4. Use LangChain LLM
         llm = AzureChatOpenAI(

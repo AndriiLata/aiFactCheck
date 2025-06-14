@@ -10,7 +10,7 @@ import time
 import pickle
 
 # Our server port adjust as necessary
-API_URL = "http://127.0.0.1:5000/verify"
+API_URL = "http://127.0.0.1:5000/api/verify"
 
 
 # Picks random instances out of a test set, stores them in a file
