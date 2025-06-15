@@ -37,11 +37,24 @@ def _llm_extract(claim: str) -> List[Triple]:
     sys = {
         "role": "system",
         "content": (
-            "You are a precise OpenIE system. Return ONLY a tool call that "
-            "extracts every factual triple in the claim."
+            "You are a precise OpenIE system. Extract every factual triple from the claim. "
+            "Return ONLY a tool call that extracts all factual triples. "
+            "If there are no factual triples, return an empty list. "
+            "A factual triple is a (subject, predicate, object) statement that can be verified."
         ),
     }
-    usr = {"role": "user", "content": claim}
+    usr = {
+        "role": "user",
+        "content": (
+            "Claim: The Eiffel Tower is located in Paris.\n"
+            "Expected triples: [{'subject': 'The Eiffel Tower', 'predicate': 'is located in', 'object': 'Paris'}]\n\n"
+            "Claim: Albert Einstein was born in Ulm and won the Nobel Prize in Physics.\n"
+            "Expected triples: ["
+            "{'subject': 'Albert Einstein', 'predicate': 'was born in', 'object': 'Ulm'}, "
+            "{'subject': 'Albert Einstein', 'predicate': 'won', 'object': 'the Nobel Prize in Physics'}]\n\n"
+            f"Claim: {claim}"
+        )
+    }
     msg = chat([sys, usr], functions=_FUNC_SCHEMA)
 
     if not getattr(msg, "tool_calls", None):
@@ -57,5 +70,7 @@ def _llm_extract(claim: str) -> List[Triple]:
 def parse_claim_to_triple(claim: str) -> Optional[Triple]:
 
     triples = _llm_extract(claim)
+    # Post-process: filter out incomplete triples
+    triples = [t for t in triples if t.subject and t.predicate and t.object]
 
-    return triples[0] if triples else None
+    return triples if triples else None

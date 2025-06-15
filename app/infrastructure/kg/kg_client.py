@@ -14,6 +14,7 @@ class KGClient:
     """
 
     def __init__(
+            
         self,
         *,
         dbp_endpoint: str | None = None,

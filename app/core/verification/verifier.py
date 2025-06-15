@@ -131,7 +131,19 @@ class Verifier:
                 "Explain your reasoning in one paragraph."
             ),
         }
+        reply = chat([system, user])
+        content = reply.content.strip()
+        try:
+            data = json.loads(content)
+            label = data.get("label", "Not Enough Info")
+            reason = data.get("reason", "")
+        except Exception:
+            label = "Not Enough Info"
+            reason = "LLM could not provide a structured answer."
 
+        # Return a dummy confidence score for compatibility
+        return label, reason, evidence_list, 1.0
+'''
             # 3. Prepare the prompt
         prompt = (
             f"Claim: {claim}\n"
@@ -184,15 +196,4 @@ class Verifier:
                     "Based on the above, is the claim Supported, Refuted, or Not Enough Info? "
                     "Explain your reasoning in one paragraph."
                 ),
-            }
-            reply = chat([system, user])
-            content = reply.content.strip()
-            try:
-                data = json.loads(content)
-                label = data.get("label", "Not Enough Info")
-                reason = data.get("reason", "")
-            except Exception:
-                label = "Not Enough Info"
-                reason = "LLM could not provide a structured answer."
-
-        return label, reason, evidence_list, confidence_score
+            }'''

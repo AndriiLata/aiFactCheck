@@ -12,6 +12,7 @@ from ..infrastructure.kg.kg_client import KGClient
 from ..core.ranking.evidence_ranker import EvidenceRanker
 from ..core.verification.verifier import Verifier
 from ..models import Triple, Edge, EntityCandidate
+import concurrent.futures
 
 
 @api_bp.route("/verify_rag", methods=["POST"])
@@ -36,27 +37,17 @@ def verify_rag():
         ), HTTPStatus.OK
     
 
-    # --- FORCE LLM FALLBACK FOR TESTING ---
-    verifier = Verifier()
-    label, reason, evidence_list, confidence_score = verifier.llm_fallback_classify(claim, extracted)
-    return jsonify(
-        {
-            "claim": claim,
-            "triple": extracted.__dict__,
-            "evidence": evidence_list,
-            "label": label,
-            "reason": reason,
-            "confidence_score": confidence_score,
-            "entity_linking": None,
-        }
-    ), HTTPStatus.OK
 
-
-'''
     # 2 ── entity linking ---------------------------------------------------
     linker = EntityLinker()
-    s_cands: List[EntityCandidate] = linker.link(extracted.subject, top_k=3)
-    o_cands: List[EntityCandidate] = linker.link(extracted.object, top_k=3)
+    subject_candidates = []
+    object_candidates = []
+
+    for triple in extracted:  # extracted is now a List[Triple]
+        s_cands = linker.link(triple.subject, top_k=3)
+        o_cands = linker.link(triple.object, top_k=3)
+        subject_candidates.append([c.__dict__ for c in s_cands])
+        object_candidates.append([c.__dict__ for c in o_cands])
 
     s_dbp = [c.dbpedia_uri for c in s_cands if c.dbpedia_uri]
     s_wd = [c.wikidata_uri for c in s_cands if c.wikidata_uri]
@@ -78,6 +69,89 @@ def verify_rag():
             }
         ), HTTPStatus.OK
 
+    verifier = Verifier()
+
+    # --- PARALLEL EXECUTION STARTS HERE ---
+    def kg_task(triple):
+        kg = KGClient()
+        # Entity linking for this triple
+        s_cands = linker.link(triple.subject, top_k=3)
+        o_cands = linker.link(triple.object, top_k=3)
+        s_dbp = [c.dbpedia_uri for c in s_cands if c.dbpedia_uri]
+        s_wd = [c.wikidata_uri for c in s_cands if c.wikidata_uri]
+        o_dbp = [c.dbpedia_uri for c in o_cands if c.dbpedia_uri]
+        o_wd = [c.wikidata_uri for c in o_cands if c.wikidata_uri]
+        paths = kg.fetch_paths(s_dbp, s_wd, o_dbp, o_wd, max_hops=2)
+        if paths:
+            ranker = EvidenceRanker(claim_text=claim, triple=triple)
+            ranked = ranker.top_k(paths, k=5)
+            best_path, score = ranked[0]
+            label, reason = verifier.classify(claim, triple, best_path, score)
+            return {
+                "label": label,
+                "reason": reason,
+                "evidence": [e.__dict__ for e in best_path],
+                "source": "kg"
+            }
+        return {
+            "label": "Not Enough Info",
+            "reason": "No KG evidence.",
+            "evidence": [],
+            "source": "kg"
+        }
+    
+    def llm_task(triple):
+        label, reason, evidence_list, uncertainty = verifier.llm_fallback_classify(claim, triple)
+        return {"label": label, "reason": reason, "evidence": evidence_list, "uncertainty": uncertainty, "source": "llm"}
+
+    results = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for triple in extracted:
+            futures.append(executor.submit(kg_task, triple))
+            futures.append(executor.submit(llm_task, triple))
+        results = [f.result() for f in futures]
+
+    # --- EVALUATION STEP ---
+    labels = [r["label"].lower() for r in results]
+
+    # Count occurrences
+    from collections import Counter
+    label_counts = Counter(labels)
+    num_false = label_counts.get("refuted", 0) + label_counts.get("false", 0)
+    num_true = label_counts.get("supported", 0) + label_counts.get("true", 0)
+    num_not_enough = label_counts.get("not enough info", 0)
+
+    if num_false > 0:
+        final_label = "Refuted"
+    elif num_true == len(labels):
+        final_label = "Supported"
+    elif num_not_enough == len(labels):
+        final_label = "Not Enough Info"
+    else:
+        final_label = label_counts.most_common(1)[0][0].capitalize()
+
+    # Combine reasons/evidence for transparency
+    combined_reason = " | ".join([f"{r['source']}: {r['reason']}" for r in results])
+    combined_evidence = []
+    for r in results:
+        combined_evidence.extend(r["evidence"])
+
+    return jsonify(
+    {
+        "claim": claim,
+        "triples": [t.__dict__ for t in extracted],
+        "label": final_label,
+        "reason": combined_reason,
+        "evidence": combined_evidence,
+        "num_false": num_false,
+        "num_true": num_true,
+        "num_not_enough_info": num_not_enough,
+    }
+), HTTPStatus.OK
+
+
+'''
     # 3 ── KG paths ---------------------------------------------------------
     kg = KGClient()
     paths: List[List[Edge]] = kg.fetch_paths(s_dbp, s_wd, o_dbp, o_wd, max_hops=2)
@@ -132,7 +206,7 @@ def verify_rag():
             },
         }
     ), HTTPStatus.OK
-    
-'''
+  '''  
+
 
 
