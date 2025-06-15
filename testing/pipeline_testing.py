@@ -11,6 +11,7 @@ import pickle
 
 # Our server port adjust as necessary
 API_URL = "http://127.0.0.1:5000/verify"
+EXTRACTION_API_URL= "http://127.0.0.1:5000/extract_triple"
 
 
 # Picks random instances out of a test set, stores them in a file
@@ -42,10 +43,11 @@ def pick_test_instances(len_dataset, num_of_samples=5, used_indices_path="Datase
 # Evaluates the given claims using http calls
 # Input: A list of tuples with a claim and a label as strings
 # Return: A pandas dataframe consisting of the tracked stats for the evaluation
-def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
+def evaluate_via_api(samples) -> pd.DataFrame:
     results = []
 
-    for claim, true_label in tqdm(samples, desc="Evaluating claims via API"):
+    for sample in tqdm(samples, desc="Evaluating claims via API"):
+        claim, true_label,*_=sample
         start_time = time.time()
         try:
             response = requests.post(API_URL, json={"claim": claim}, timeout=1000)
@@ -79,6 +81,48 @@ def evaluate_via_api(samples: list[tuple[str, str]]) -> pd.DataFrame:
             "reason": reason,
             "time_seconds": elapsed_time,
         })
+
+    return pd.DataFrame(results)
+
+def evaluate_triple_extraction_via_api(samples) -> pd.DataFrame:
+    results = []
+
+    for sample in tqdm(samples, desc="Evaluating triple extraction via API"):
+        claim, true_label, evidence, *_ = sample  # Accepts tuples with more than 2 elements
+
+        start_time = time.time()
+        try:
+            response = requests.post(EXTRACTION_API_URL, json={"claim": claim}, timeout=1000)
+            if response.status_code == 200:
+                raw_data = response.json()
+                triple = raw_data.get("triple")
+                extraction_successful = triple is not None
+            else:
+                print(f"[!] Error for claim: {claim[:50]}... -> Status code: {response.status_code}")
+                triple = None
+                extraction_successful = False
+        except Exception as e:
+            print(f"[!] Exception for claim: {claim[:50]}... -> {e}")
+            triple = None
+            extraction_successful = False
+
+        elapsed_time = time.time() - start_time
+
+        results.append({
+            "claim": claim,
+            "Sucess": extraction_successful,
+            "triple": triple,
+            "evidence": evidence,
+            "time_seconds": elapsed_time,
+        })
+
+    with pd.option_context(
+            'display.max_rows', None,
+            'display.max_columns', None,
+            'display.width', None,
+            'display.max_colwidth', None
+    ):
+        print(pd.DataFrame(results))
 
     return pd.DataFrame(results)
 
@@ -136,7 +180,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("[*] Loading dataset...")
-    data = factkg_utils.load_factkg_dataset(args.file)
+    #data = factkg_utils.load_factkg_dataset(args.file)
+    data=factkg_utils.load_fever_dataset(args.file)
     len_dataset = len(data)
 
     print(f"[*] Sampling {args.samples} random claims...")
@@ -146,6 +191,7 @@ if __name__ == "__main__":
     print("[*] Sending samples to local /verify endpoint...\n")
     df_results = evaluate_via_api(samples)
 
+
     metrics = print_metrics(df_results)
     with open(args.output, "wb") as f:
         pickle.dump({
@@ -154,3 +200,4 @@ if __name__ == "__main__":
         }, f)
 
     print(f"[*] Results and metrics saved to: {args.output}")
+

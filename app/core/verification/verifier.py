@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import requests
 from typing import List, Tuple
+from ...config import Settings
 
 from ...infrastructure.llm.llm_client import chat
 from ...models import Triple, Edge
+
+settings = Settings()
 
 LABELS = ("Supported", "Refuted", "Not Enough Info")
 
@@ -67,4 +71,5 @@ class Verifier:
             )
             out.append(f"Path {i+1}: {formatted}")
         return "\n".join(out) or "No evidence retrieved."
+
 

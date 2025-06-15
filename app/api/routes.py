@@ -11,7 +11,68 @@ from ..core.linking.entity_linker import EntityLinker
 from ..infrastructure.kg.kg_client import KGClient
 from ..core.ranking.evidence_ranker import EvidenceRanker
 from ..core.verification.verifier import Verifier
+from ..core.verification.web_verifier import WebVerifier
 from ..models import Triple, Edge, EntityCandidate
+from ..core.crew.pipeline import verify_claim_crew
+from ..core.crew.pipeline_paraphrase import verify_claim_paraphrased
+
+@api_bp.route("/verify_web_only", methods=["POST"])
+def verify_web_only():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    out = verify_claim_paraphrased(claim)
+    return jsonify(out), HTTPStatus.OK
+
+
+@api_bp.route("/verify_crewAI", methods=["POST"])
+def verify_crewAI():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    out = verify_claim_crew(claim)
+    return jsonify(out), HTTPStatus.OK
+
+
+@api_bp.route("/verify_rag", methods=["POST"])
+def verify_rag():
+    data = request.get_json(force=True)
+    claim = data.get("claim")
+    if not claim:
+        return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
+
+    # 1 ── triple extraction ------------------------------------------------
+    extracted: Triple | None = parse_claim_to_triple(claim)
+    if extracted is None:
+        return jsonify(
+            {
+                "claim": claim,
+                "triple": None,
+                "evidence": [],
+                "label": "Not Enough Info",
+                "reason": "Could not extract a semantic triple from the claim.",
+                "entity_linking": None,
+            }
+        ), HTTPStatus.OK
+    
+
+    # --- FORCE LLM FALLBACK FOR TESTING ---
+    web_verifier = WebVerifier()
+    label, reason, evidence_list = web_verifier.verify(claim, extracted)
+    return jsonify(
+        {
+            "claim": claim,
+            "triple": extracted.__dict__,
+            "evidence": evidence_list,
+            "label": label,
+            "reason": reason,
+            "entity_linking": None,
+        }
+    ), HTTPStatus.OK
 
 
 @api_bp.route("/verify", methods=["POST"])
@@ -66,34 +127,44 @@ def verify():
     
     verifier = Verifier()
 
-    if not paths:
-        label, reason = verifier.classify(claim, extracted, [], 0.0)
-        return jsonify(
-            {
-                "claim": claim,
-                "triple": extracted.__dict__,
-                "evidence": [],
-                "label": label,
-                "reason": reason,
-                "entity_linking": {
-                    "subject_candidates": [c.__dict__ for c in s_cands],
-                    "object_candidates": [c.__dict__ for c in o_cands],
-                },
-            }
-        ), HTTPStatus.OK
-
     # 4 ── rank evidence ----------------------------------------------------
-    ranker = EvidenceRanker(claim_text=claim, triple=extracted)
-    ranked: List[Tuple[List[Edge], float]] = ranker.top_k(paths, k=5)
+    if paths:
+        ranker = EvidenceRanker(claim_text=claim, triple=extracted)
+        ranked: List[Tuple[List[Edge], float]] = ranker.top_k(paths, k=5)
 
-    best_path, score = ranked[0]
-    all_top = [p for p, _ in ranked]
+        top_paths = [p for p, _ in ranked]
+        best_path = top_paths[0]
+        all_top = top_paths
 
-    # 5 ── verification -----------------------------------------------------
-    top_paths = [p for p, _ in ranked[:5]]
-    label, reason = verifier.classify(claim, extracted, top_paths)
+        label, reason = verifier.classify(claim, extracted, top_paths)
+    else:
+        best_path = []
+        all_top = []
+        label, reason = verifier.classify(claim, extracted, [], 0.0)
 
 
+    # 5 ── LLM fallback if still not enough info ----------------------------
+    if label == "Not Enough Info":
+        label, reason, evidence_list = verifier.llm_fallback_classify(claim, extracted)
+        if evidence_list:
+            best_path = []  # No KG evidence, but we have web evidence
+            all_top = []
+            # Optionally, you can add evidence_list to the output as "evidence"
+            return jsonify(
+                {
+                    "claim": claim,
+                    "triple": extracted.__dict__,
+                    "evidence": evidence_list,
+                    "all_top_evidence_paths": [],
+                    "label": label,
+                    "reason": reason,
+                    "entity_linking": {
+                        "subject_candidates": [c.__dict__ for c in s_cands],
+                        "object_candidates": [c.__dict__ for c in o_cands],
+                    },
+                }
+            ), HTTPStatus.OK
+    
     return jsonify(
         {
             "claim": claim,
@@ -108,3 +179,5 @@ def verify():
             },
         }
     ), HTTPStatus.OK
+
+

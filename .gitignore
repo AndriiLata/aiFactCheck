@@ -2,8 +2,9 @@
 /.pyc
 /.env
 .__pycache__
+app/services/pycache
+__pycache__/
 
 testing/Datasets/*
 !testing/Datasets/.gitkeep
-
 
