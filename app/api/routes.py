@@ -45,21 +45,6 @@ def verify_rag():
     if not claim:
         return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
 
-    # 1 ── triple extraction ------------------------------------------------
-    extracted: Triple | None = parse_claim_to_triple(claim)
-    if extracted is None:
-        return jsonify(
-            {
-                "claim": claim,
-                "triple": None,
-                "evidence": [],
-                "label": "Not Enough Info",
-                "reason": "Could not extract a semantic triple from the claim.",
-                "entity_linking": None,
-            }
-        ), HTTPStatus.OK
-    
-
     # --- FORCE LLM FALLBACK FOR TESTING ---
     web_verifier = WebVerifier()
     label, reason, evidence_list = web_verifier.verify(claim, extracted)
