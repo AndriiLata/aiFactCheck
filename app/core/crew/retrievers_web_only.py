@@ -14,7 +14,7 @@ from ..verification.web_verifier import WebVerifier
 from .trust import score_for_url
 
 
-async def _collect_web(claim: str, top_k: int = 40) -> List[Dict]:
+async def _collect_web(claim: str, top_k: int = 100) -> List[Dict]:
     """Search the web using a paraphrased query and normalise snippets."""
     query = paraphrase_claim(claim)
     wv = WebVerifier(num_results=top_k)
