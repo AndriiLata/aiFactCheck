@@ -1,17 +1,18 @@
 import random
 from pathlib import Path
 from sklearn.metrics import classification_report
-import factkg_utils
+import utils
 import argparse
 import requests
 from tqdm import tqdm
 import pandas as pd
-import time
 import pickle
+from app.config import Settings
+
+settings = Settings()
 
 # Our server port adjust as necessary
-API_URL = "http://127.0.0.1:5000/verify"
-EXTRACTION_API_URL= "http://127.0.0.1:5000/extract_triple"
+API_URL = "http://127.0.0.1:5000/api/verify2"
 
 
 # Picks random instances out of a test set, stores them in a file
@@ -48,7 +49,6 @@ def evaluate_via_api(samples) -> pd.DataFrame:
 
     for sample in tqdm(samples, desc="Evaluating claims via API"):
         claim, true_label,*_=sample
-        start_time = time.time()
         try:
             response = requests.post(API_URL, json={"claim": claim}, timeout=1000)
             if response.status_code == 200:
@@ -57,73 +57,35 @@ def evaluate_via_api(samples) -> pd.DataFrame:
                 reason = raw_data.get("reason", "")
                 triple = raw_data.get("triple", {})
                 evidence = raw_data.get("evidence", [])
+                timing_info = raw_data.get("timing_info") if settings.TIME_STEPS else None
             else:
                 print(f"[!] Error for claim: {claim[:50]}... -> Response status code: {response.status_code}")
                 label_pred = "Error"
                 reason = ""
                 triple = {}
                 evidence = []
+                timing_info = None
         except Exception as e:
             print(f"[!] Error for claim: {claim[:50]}... -> {e}")
             label_pred = "Error"
             reason = ""
             triple = {}
             evidence = []
+            timing_info = None
 
-        elapsed_time = time.time() - start_time  # end timer
-
-        results.append({
+        entry={
             "claim": claim,
             "true_label": true_label,
             "predicted_label": label_pred,
             "triple": triple,
             "evidence": evidence,
             "reason": reason,
-            "time_seconds": elapsed_time,
-        })
+        }
 
-    return pd.DataFrame(results)
+        if settings.TIME_STEPS and timing_info:
+            entry["timing_info"] = timing_info
 
-def evaluate_triple_extraction_via_api(samples) -> pd.DataFrame:
-    results = []
-
-    for sample in tqdm(samples, desc="Evaluating triple extraction via API"):
-        claim, true_label, evidence, *_ = sample  # Accepts tuples with more than 2 elements
-
-        start_time = time.time()
-        try:
-            response = requests.post(EXTRACTION_API_URL, json={"claim": claim}, timeout=1000)
-            if response.status_code == 200:
-                raw_data = response.json()
-                triple = raw_data.get("triple")
-                extraction_successful = triple is not None
-            else:
-                print(f"[!] Error for claim: {claim[:50]}... -> Status code: {response.status_code}")
-                triple = None
-                extraction_successful = False
-        except Exception as e:
-            print(f"[!] Exception for claim: {claim[:50]}... -> {e}")
-            triple = None
-            extraction_successful = False
-
-        elapsed_time = time.time() - start_time
-
-        results.append({
-            "claim": claim,
-            "Sucess": extraction_successful,
-            "triple": triple,
-            "evidence": evidence,
-            "time_seconds": elapsed_time,
-        })
-
-    with pd.option_context(
-            'display.max_rows', None,
-            'display.max_columns', None,
-            'display.width', None,
-            'display.max_colwidth', None
-    ):
-        print(pd.DataFrame(results))
-
+        results.append(entry)
     return pd.DataFrame(results)
 
 
@@ -145,8 +107,14 @@ def print_metrics(df: pd.DataFrame):
                             dropna=False)
     print(confusion)
 
-    avg_time = df['time_seconds'].mean()
-    print(f"\nAverage Time per Prediction: {avg_time:.3f} seconds")
+    if settings.TIME_STEPS and "timing_info" in df.columns:
+        df["__effective_time__"] = df["timing_info"].apply(
+            lambda x: x.get("0. total_time") if isinstance(x, dict) else None
+        )
+        avg_time = df["__effective_time__"].mean()
+        print(f"\nAverage Time per Prediction: {avg_time:.3f} seconds")
+        df.drop(columns="__effective_time__", inplace=True)
+
 
     return {
         "classification_report": report,
@@ -180,13 +148,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("[*] Loading dataset...")
-    #data = factkg_utils.load_factkg_dataset(args.file)
-    data=factkg_utils.load_fever_dataset(args.file)
+
+    #Switch to the relevant line of code
+    data = utils.load_fever_dataset(args.file, drop_NEI=False)
+    #data=utils.load_factkg_dataset(args.file)
+
     len_dataset = len(data)
 
     print(f"[*] Sampling {args.samples} random claims...")
     test_indices = pick_test_instances(len_dataset, args.samples, args.used_indices_path)
-    samples = factkg_utils.get_claims_by_indices(data, test_indices)
+    samples = utils.get_claims_by_indices(data, test_indices)
 
     print("[*] Sending samples to local /verify endpoint...\n")
     df_results = evaluate_via_api(samples)
