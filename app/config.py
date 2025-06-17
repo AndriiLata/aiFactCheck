@@ -28,6 +28,7 @@ class Settings:
 
     # -------------------------------------------------------------------
     JSON_SORT_KEYS = False  # keep original order in Flask jsonify
+    TIME_STEPS = True
 
     # convenience
     @cached_property

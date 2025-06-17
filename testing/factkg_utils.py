@@ -4,19 +4,22 @@ import json
 
 # Class containing the utils specific to the FactKG Dataset
 
-def load_fever_dataset(path: str) -> dict:
+def load_fever_dataset(path: str, drop_NEI=False) -> dict:
     """Loads FEVER dataset from .jsonl and converts it to FactKG-like dict format."""
     dataset = {}
 
     with open(path, "r", encoding="utf-8") as f:
-        for entry in f:
-            obj = json.loads(entry.strip())
+        for line in f:
+            obj = json.loads(line)
             claim = obj["claim"]
             label = obj["label"]
+            if drop_NEI and label.upper() == "NOT ENOUGH INFO":
+                continue
+
             evidence = obj.get("evidence", [])
             dataset[claim] = {
-                "Label": [label],          # Match FactKG structure
-                "Evidence": evidence       # Keep as-is
+                "Label":    [label],
+                "Evidence": evidence
             }
 
     return dataset
@@ -39,7 +42,8 @@ def get_claim_entry_by_index(dataset: dict, index: int):
     label_orig = entry.get("Label")[0]
     label = normalize_label(label_orig)
     evidence=entry.get("Evidence")
-    return claim, label, evidence
+    types=entry.get("types")
+    return claim, label, evidence, types
 
 
 # Returns a list of claims and labels specified by th indices in the input
