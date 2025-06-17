@@ -1,0 +1,10 @@
+# Editable without redeploy
+wikidata.org: 0.1
+dbpedia.org: 0.1
+".gov": 0.95
+".edu": 0.95
+nytimes.com: 0.9
+bbc.co.uk: 0.9
+reddit.com: 0.1
+"*": 0.5
+# The trust score is a value between 0 and 1, where 1 is the most trusted.
