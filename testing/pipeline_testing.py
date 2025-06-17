@@ -1,7 +1,7 @@
 import random
 from pathlib import Path
 from sklearn.metrics import classification_report
-import factkg_utils
+import utils
 import argparse
 import requests
 from tqdm import tqdm
@@ -150,14 +150,14 @@ if __name__ == "__main__":
     print("[*] Loading dataset...")
 
     #Switch to the relevant line of code
-    data = factkg_utils.load_fever_dataset(args.file, drop_NEI=False)
-    #data=factkg_utils.load_factkg_dataset(args.file)
+    data = utils.load_fever_dataset(args.file, drop_NEI=False)
+    #data=utils.load_factkg_dataset(args.file)
 
     len_dataset = len(data)
 
     print(f"[*] Sampling {args.samples} random claims...")
     test_indices = pick_test_instances(len_dataset, args.samples, args.used_indices_path)
-    samples = factkg_utils.get_claims_by_indices(data, test_indices)
+    samples = utils.get_claims_by_indices(data, test_indices)
 
     print("[*] Sending samples to local /verify endpoint...\n")
     df_results = evaluate_via_api(samples)

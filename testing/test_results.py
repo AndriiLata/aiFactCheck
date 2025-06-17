@@ -1,7 +1,7 @@
 import pandas as pd
 import pickle
 import pipeline_testing
-import factkg_utils
+import utils
 import numpy as np
 
 # Script with various functionality for manual testing
@@ -21,8 +21,8 @@ results_df=df
 
 #Print some sample claims
 """
-data = factkg_utils.load_factkg_dataset("Datasets/factkg_train.pickle")
-#samples = factkg_utils.get_claims_by_indices(data, pipeline_testing.pick_test_instances(len(data), 2))
+data = utils.load_factkg_dataset("Datasets/factkg_train.pickle")
+#samples = utils.get_claims_by_indices(data, pipeline_testing.pick_test_instances(len(data), 2))
 """
 
 #Prints factkg results by claim type
@@ -94,9 +94,9 @@ def print_factkg_samples(samples):
 
 #Print some samples from dataset
 
-data = factkg_utils.load_factkg_dataset("Datasets/factkg_train.pickle")
-#data=factkg_utils.load_fever_dataset("Datasets/fever_train.jsonl")
-samples = factkg_utils.get_claims_by_indices(data, pipeline_testing.pick_test_instances(len(data), 15))
+data = utils.load_factkg_dataset("Datasets/factkg_train.pickle")
+#data=utils.load_fever_dataset("Datasets/fever_train.jsonl")
+samples = utils.get_claims_by_indices(data, pipeline_testing.pick_test_instances(len(data), 15))
 
 print(samples)
 print_factkg_samples(samples)
