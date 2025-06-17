@@ -146,3 +146,9 @@ print(f"\nTotal claims with label 'Error': {len(error_claims)}\n")
 for i, claim in enumerate(error_claims, start=1):
     print(f"{i:3d}. {claim}")
 """
+
+from refined.inference.processor import Refined
+refined = Refined.from_pretrained(model_name='wikipedia_model_with_numbers',
+                                  entity_set="wikipedia")
+spans = refined.process_text("Barack Obama was born in Hawaii")
+print(spans)

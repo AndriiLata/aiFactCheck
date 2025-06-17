@@ -33,3 +33,19 @@ torch>=2.3
 tldextract>=5.3.0
 
 PyYAML~=6.0.2
+
+# ── Entity Linking ───────────────────────────
+#ReFinED model
+https://github.com/amazon-science/ReFinED/archive/refs/tags/V1.zip
+transformers==4.35.2
+
+# NOTE: ReFinED has a Windows incompatibility:
+# In .venv/Lib/site-packages/refined/resource_management/aws.py, Line 49
+# replace: s3_last_modified = int(s3_obj.last_modified.strftime("%s"))
+# with:    import calendar
+s3_last_modified = int(calendar.timegm(s3_obj.last_modified.utctimetuple()))
+# (to fix: ValueError: Invalid format string on Windows)
+
+
+# NOTE: Also run the following manually after install:
+# python -m spacy download en_core_web_md
