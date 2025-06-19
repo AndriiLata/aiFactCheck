@@ -44,7 +44,7 @@ spacy-entity-linker>=1.0.3
 # In .venv/Lib/site-packages/refined/resource_management/aws.py, Line 49
 # replace: s3_last_modified = int(s3_obj.last_modified.strftime("%s"))
 # with:    import calendar
-s3_last_modified = int(calendar.timegm(s3_obj.last_modified.utctimetuple()))
+# s3_last_modified = int(calendar.timegm(s3_obj.last_modified.utctimetuple()))
 # (to fix: ValueError: Invalid format string on Windows)
 
 
