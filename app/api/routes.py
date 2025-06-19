@@ -50,21 +50,6 @@ def verify_rag():
     if not claim:
         return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
 
-    # 1 ── triple extraction ------------------------------------------------
-    extracted: Triple | None = parse_claim_to_triple(claim)
-    if extracted is None:
-        return jsonify(
-            {
-                "claim": claim,
-                "triple": None,
-                "evidence": [],
-                "label": "Not Enough Info",
-                "reason": "Could not extract a semantic triple from the claim.",
-                "entity_linking": None,
-            }
-        ), HTTPStatus.OK
-    
-
     # --- FORCE LLM FALLBACK FOR TESTING ---
     web_verifier = WebVerifier()
     label, reason, evidence_list = web_verifier.verify(claim, extracted)
@@ -129,20 +114,24 @@ def verify():
     # 3 ── KG paths ---------------------------------------------------------
     kg = KGClient()
     paths: List[List[Edge]] = kg.fetch_paths(s_dbp, s_wd, o_dbp, o_wd, max_hops=2)
-
+    
     verifier = Verifier()
 
     # 4 ── rank evidence ----------------------------------------------------
     if paths:
         ranker = EvidenceRanker(claim_text=claim, triple=extracted)
         ranked: List[Tuple[List[Edge], float]] = ranker.top_k(paths, k=5)
-        best_path, score = ranked[0]
-        all_top = [p for p, _ in ranked]
-        label, reason = verifier.classify(claim, extracted, best_path, score)
+
+        top_paths = [p for p, _ in ranked]
+        best_path = top_paths[0]
+        all_top = top_paths
+
+        label, reason = verifier.classify(claim, extracted, top_paths)
     else:
         best_path = []
         all_top = []
         label, reason = verifier.classify(claim, extracted, [], 0.0)
+
 
     # 5 ── LLM fallback if still not enough info ----------------------------
     if label == "Not Enough Info":
