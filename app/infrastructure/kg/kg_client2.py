@@ -95,8 +95,6 @@ class KGClient2:
         paths: List[List[Edge]] = []
         for uri in uris:
             deg = self._count_edges(uri)
-            print("uri", uri)
-            print("deg", deg)
             is_high_degree = deg > self.degree_threshold
             if is_high_degree:
                 for other_uri in uri_set - {uri}:
