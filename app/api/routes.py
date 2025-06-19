@@ -251,8 +251,9 @@ def verify2():
 
     # 4 ── rank evidence ----------------------------------------------------
     from ..core.ranking.evidence_ranker2 import EvidenceRanker2
+    top_k=3
     ranker = EvidenceRanker2(claim_text=claim)
-    ranked: List[Tuple[List[Edge], float]] = time_step("5. evidence_ranking", ranker.top_k, paths, k=10,
+    ranked: List[Tuple[List[Edge], float]] = time_step("5. evidence_ranking", ranker.top_k, paths, k=top_k,
                                                        use_bi_encoder=False)
 
     def pretty_print_ranked_paths(ranked_paths: List[Tuple[List[Edge], float]]) -> None:
@@ -283,6 +284,7 @@ def verify2():
 
     # 5 ── verification -----------------------------------------------------
     evidence=[edge for path, _ in ranked for edge in path]
+    evidence=evidence[0:top_k]
     label, reason = time_step("6. final_verification", verifier.classify, claim, evidence)
 
     return jsonify(
