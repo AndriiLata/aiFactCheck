@@ -125,21 +125,25 @@ class EntityLinker:
     # ------------------------------------------------------------------ #
     # Public
     # ------------------------------------------------------------------ #
-    def link(self, surface: str, *, top_k: int = 3) -> List[EntityCandidate]:
+    def link(self, surface: str, *, top_k: int = 3, context: str = "") -> List[EntityCandidate]:
         surface = surface.strip()
         if not surface:
             return []
+        
+        # Combine surface and context for lookup if context is provided
+        query = f"{surface} {context}".strip() if context else surface
 
-        # 1. Wikidata pipeline
-        cands = self._wd_lookup(surface, max_hits=top_k)
+        # 1. Wikidata pipeline (use query)
+        cands = self._wd_lookup(query, max_hits=top_k)
 
-        # 2. DBpedia Lookup fallback
+        # 2. DBpedia Lookup fallback (use query)
         if not cands:
-            cands = self._dbp_lookup(surface, max_hits=top_k)
+            cands = self._dbp_lookup(query, max_hits=top_k)
 
-        # 3. Spotlight fallback
+        # 3. Spotlight fallback (use context as text if available)
         if not cands:
-            cands = self._spotlight(surface, max_hits=top_k)
+            spotlight_text = context if context else surface
+            cands = self._spotlight(spotlight_text, max_hits=top_k)
 
         # 4. Heuristic – last resort
         if not cands or not any(c.dbpedia_uri for c in cands):

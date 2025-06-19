@@ -63,3 +63,18 @@ class WikidataQueryClient:
                 ]
             )
         return paths
+    
+    def fetch_triples(self, entity: str, predicate: str, limit: int = 100) -> List[Edge]:
+        """
+        Fetch all triples for a given Wikidata entity and predicate.
+        """
+        q = f"""
+        SELECT ?o WHERE {{
+        <{entity}> <{predicate}> ?o .
+        }} LIMIT {limit}
+        """
+        results = self._q(q)
+        return [
+            Edge(subject=entity, predicate=predicate, object=row["o"]["value"], source_kg="wikidata")
+            for row in results
+        ]

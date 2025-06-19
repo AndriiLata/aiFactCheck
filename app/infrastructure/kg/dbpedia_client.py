@@ -66,3 +66,18 @@ class DBpediaClient:
                 ]
             )
         return paths
+    
+    def fetch_triples(self, entity: str, predicate: str, limit: int = 20) -> list:
+        """
+        Fetch all triples for a given DBpedia entity and predicate.
+        """
+        query = f"""
+        SELECT ?o WHERE {{
+        <{entity}> <{predicate}> ?o .
+        }} LIMIT {limit}
+        """
+        results = self._q(query)
+        return [
+            Edge(subject=entity, predicate=predicate, object=row["o"]["value"], source_kg="dbpedia")
+            for row in results
+        ]

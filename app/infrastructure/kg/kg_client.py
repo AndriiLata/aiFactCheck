@@ -31,8 +31,8 @@ class KGClient:
         o_dbp: List[str],
         o_wd: List[str],
         *,
-        limit_edge: int = 100,
-        limit_two_hop: int = 50,
+        limit_edge: int = 500,
+        limit_two_hop: int = 100,
         max_hops: int = 2,
     ) -> List[List[Edge]]:
         paths: List[List[Edge]] = []

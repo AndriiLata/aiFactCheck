@@ -7,4 +7,5 @@ __pycache__/
 
 testing/Datasets/*
 !testing/Datasets/.gitkeep
+app/data/
 

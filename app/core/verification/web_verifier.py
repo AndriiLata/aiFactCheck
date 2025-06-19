@@ -21,7 +21,9 @@ class WebVerifier:
     """
 
     def __init__(self, num_results: int = 100):
-        self.serp_api_key = settings.SEARCHAPI_KEY
+        #Switch to using Brave Search API
+        #self.serp_api_key = settings.SEARCHAPI_KEY
+        self.brave_api_key = settings.BRAVE_API_KEY
         self.num_results = num_results
 
 
@@ -35,7 +37,7 @@ class WebVerifier:
             )
 
         # 1. Search for evidence
-        query = f'"{triple.subject}" "{triple.predicate}" "{triple.object}"'
+        query = f'{triple.subject} {triple.predicate} {triple.object}'
         search_results = self._search(query)
         if not search_results:
             return "Not Enough Info", "No relevant search results found on the web.", []
@@ -49,25 +51,32 @@ class WebVerifier:
 
 
     def _search(self, query: str) -> List[Dict]:
-        """Query Google via SerpAPI and return the organic results as a list."""
-        print(f"Searching web for: {query}")
+        """Query Brave Search API and return the organic results as a list."""
+        print(f"Searching web (Brave) for: {query}")
+        headers = {
+            "Accept": "application/json",
+            "X-Subscription-Token": self.brave_api_key,
+        }
         params = {
-            "q": query,
-            "api_key": self.serp_api_key,
-            "engine": "google",
-            "num": self.num_results,
+            "q": query,  # Try without extra quotes if needed
+            "count": min(self.num_results, 20),  # Brave API may limit count
         }
         try:
-            resp = requests.get("https://www.searchapi.io/api/v1/search", params=params, timeout=20)
+            resp = requests.get(
+                "https://api.search.brave.com/res/v1/web/search",
+                headers=headers,
+                params=params,
+                timeout=20,
+            )
             resp.raise_for_status()
             data = resp.json()
-            results = data.get("organic_results", [])
+            results = data.get("web", {}).get("results", [])
             print(f"Search successful. Found {len(results)} results.")
             return [
                 {
                     "title": r.get("title"),
-                    "snippet": r.get("snippet"),
-                    "link": r.get("link"),
+                    "snippet": r.get("description"),
+                    "link": r.get("url"),
                 }
                 for r in results
             ]
