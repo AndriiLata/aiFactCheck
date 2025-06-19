@@ -208,7 +208,7 @@ def verify2():
     from ..core.linking.entity_linker2 import EntityLinker2
     linker = EntityLinker2()
 
-    dbp = time_step("Entity_linking_subject", linker.link, claim)
+    dbp = time_step("1. Entity_linking", linker.link, claim)
     print("entities ", dbp)
 
     if not dbp:
@@ -235,7 +235,7 @@ def verify2():
     verifier = Verifier2()
 
     if not paths:
-        label, reason = verifier.classify(claim, [], 0.0)
+        label, reason = verifier.classify(claim, [])
         return jsonify(
             {
                 "claim": claim,
@@ -279,16 +279,15 @@ def verify2():
     print("Claim:", claim)
     pretty_print_ranked_paths(ranked)
 
-    best_path, score = ranked[0]
     all_top = [p for p, _ in ranked]
 
     # 5 ── verification -----------------------------------------------------
-    label, reason = time_step("6. final_verification", verifier.classify, claim, best_path, score)
+    evidence=[edge for path, _ in ranked for edge in path]
+    label, reason = time_step("6. final_verification", verifier.classify, claim, evidence)
 
     return jsonify(
         {
             "claim": claim,
-            "evidence": [e.__dict__ for e in best_path],
             "all_top_evidence_paths": [[e.__dict__ for e in p] for p in all_top],
             "label": label,
             "reason": reason,
