@@ -14,15 +14,13 @@ class Verifier2:
     Single GPT call that reasons over claim + evidence.
     """
 
-    def classify(
-        self,
-        claim: str,
-        evidence: List[Edge],
-        support_score: float,
-    ) -> Tuple[str, str]:
-        ev = "\n".join(
-            f"{e.subject.split('/')[-1]} —[{e.predicate.split('/')[-1]}]→ {e.object.split('/')[-1]}"
-            for e in evidence
+    def classify(self, claim: str, evidence: List[Edge]) -> Tuple[str, str]:
+        def _format_name(name: str) -> str:
+            return name.split("/")[-1].replace("_", " ").strip()
+
+        ev = "\n\n".join(
+            f"[{i + 1:2}] {_format_name(e.subject)} → {_format_name(e.predicate)} → {_format_name(e.object)}"
+            for i, e in enumerate(evidence)
         ) or "No evidence retrieved."
 
         system = {
