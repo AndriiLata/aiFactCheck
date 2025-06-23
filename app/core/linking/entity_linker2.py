@@ -1,12 +1,16 @@
 import spacy
 from refined.inference.processor import Refined
 from SPARQLWrapper import SPARQLWrapper, JSON
+from typing import List, Optional
 
 # Initialize once
 _sparql = SPARQLWrapper("https://dbpedia.org/sparql")
 _sparql.setReturnFormat(JSON)
-from typing import List, Optional
 
+# Load models ONCE at module level
+REFINED_MODEL = Refined.from_pretrained(model_name='wikipedia_model_with_numbers', entity_set="wikipedia")
+SPACY_MODEL = spacy.load("en_core_web_md")
+SPACY_MODEL.add_pipe("entityLinker", last=True)
 
 class EntityLinker2:
 
@@ -32,16 +36,12 @@ class EntityLinker2:
             return None
 
     def link(self, claim: str) -> List[str]:
-        refined = Refined.from_pretrained(model_name='wikipedia_model_with_numbers',
-                                          entity_set="wikipedia")
-
-        spans = refined.process_text(claim)
+        # Use the preloaded models
+        spans = REFINED_MODEL.process_text(claim)
 
         # 2) fallback trigger: too few spans
         if len(spans) <= 1:
-            nlp = spacy.load("en_core_web_md")
-            nlp.add_pipe("entityLinker", last=True)
-            doc = nlp(claim)
+            doc = SPACY_MODEL(claim)
             urls: List[str] = []
             for ent in doc._.linkedEntities:
                 raw_id = ent.get_id()  # e.g. "903257" or "Q903257"

@@ -21,6 +21,9 @@ from ..core.crew.pipeline_paraphrase import verify_claim_paraphrased
 from app.config import Settings
 settings = Settings()
 
+from ..core.linking.entity_linker2 import EntityLinker2
+linker = EntityLinker2()  # Load once, reuse
+
 @api_bp.route("/verify_web_only", methods=["POST"])
 def verify_web_only():
     data = request.get_json(force=True)
@@ -206,7 +209,7 @@ def verify2():
 
     # 2 ── entity linking ---------------------------------------------------
     from ..core.linking.entity_linker2 import EntityLinker2
-    linker = EntityLinker2()
+    #linker = EntityLinker2()
 
     dbp = time_step("1. Entity_linking", linker.link, claim)
     print("entities ", dbp)

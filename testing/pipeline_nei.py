@@ -1,16 +1,25 @@
+import random
 from testing import utils
 import requests
 from tqdm import tqdm
 import pandas as pd
+import os
 from app.infrastructure.llm.llm_client import chat
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
 
 API_URL = "http://127.0.0.1:5000/api/verify2"
+MAX_SAMPLES = 1  # Set your desired maximum here
 
 # 1. Load and filter NEI samples
 data = utils.load_fever_dataset("testing/Datasets/train.jsonl", drop_NEI=False)
 nei_samples = [(claim, entry["Label"][0], entry["Evidence"]) 
                for claim, entry in data.items() 
                if entry["Label"][0].lower() == "not enough info"]
+
+# Randomly select up to MAX_SAMPLES NEI claims
+if len(nei_samples) > MAX_SAMPLES:
+    nei_samples = random.sample(nei_samples, MAX_SAMPLES)
 
 # 2. Classify NEI claims
 results = []
@@ -62,5 +71,25 @@ for entry in results:
 
 # 4. Output
 df = pd.DataFrame(results)
-df.to_csv("nei_test_results.csv", index=False)
+
+base_filename = "nei_test_results.csv"
+filename = base_filename
+i = 1
+while os.path.exists(filename):
+    filename = f"nei_test_results_{i}.csv"
+    i += 1
+
+df.to_csv(filename, index=False, sep=';')
+print(f"Results saved to {filename}")
 print(df.head())
+
+# Print classification report
+print("\nClassification Report:")
+print(classification_report(df["true_label"], df["predicted_label"]))
+
+# Print confusion matrix
+print("\nConfusion Matrix:")
+print(confusion_matrix(df["true_label"], df["predicted_label"]))
+
+# Print accuracy
+print("\nAccuracy:", accuracy_score(df["true_label"], df["predicted_label"]))
