@@ -4,6 +4,7 @@
 .__pycache__
 app/services/pycache
 __pycache__/
+.venv
 
 testing/Datasets/*
 !testing/Datasets/.gitkeep
