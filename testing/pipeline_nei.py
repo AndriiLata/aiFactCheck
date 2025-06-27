@@ -7,7 +7,7 @@ import os
 from app.infrastructure.llm.llm_client import chat
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
-
+print("Script started")  # At the very top
 API_URL = "http://127.0.0.1:5000/api/verify2"
 MAX_SAMPLES = 1  # Set your desired maximum here
 
@@ -16,6 +16,7 @@ data = utils.load_fever_dataset("testing/Datasets/train.jsonl", drop_NEI=False)
 nei_samples = [(claim, entry["Label"][0], entry["Evidence"]) 
                for claim, entry in data.items() 
                if entry["Label"][0].lower() == "not enough info"]
+print(f"Loaded {len(nei_samples)} NEI samples")  # After filtering
 
 # Randomly select up to MAX_SAMPLES NEI claims
 if len(nei_samples) > MAX_SAMPLES:
@@ -46,6 +47,8 @@ for claim, true_label, evidence in tqdm(nei_samples, desc="Classifying NEI claim
         "found_evidence": found_evidence,
         "reason": reason
     })
+
+print(f"Number of results: {len(results)}")  # Before DataFrame creation
 
 # 3. LLM explanation for misclassified NEI
 def ask_llm_about_nei(claim, evidence):
@@ -79,6 +82,8 @@ while os.path.exists(filename):
     filename = f"nei_test_results_{i}.csv"
     i += 1
 
+print("Saving results to CSV...")
+print("Current working directory:", os.getcwd())
 df.to_csv(filename, index=False, sep=';')
 print(f"Results saved to {filename}")
 print(df.head())
