@@ -20,9 +20,11 @@ class WebVerifier:
     scraping costs while still giving the LLM enough context.
     """
 
-    def __init__(self, num_results: int = 100):
+    def __init__(self, num_results: int = 100, search_engine: str = "brave"):
         self.serp_api_key = settings.SEARCHAPI_KEY
+        self.brave_api_key = getattr(settings, "BRAVE_API_KEY", None)
         self.num_results = num_results
+        self.search_engine = search_engine.lower()
 
 
     def verify(self, claim: str, triple: Triple) -> Tuple[str, str, List[Dict]]:
@@ -49,8 +51,35 @@ class WebVerifier:
 
 
     def _search(self, query: str) -> List[Dict]:
-        """Query Google via SerpAPI and return the organic results as a list."""
-        print(f"Searching web for: {query}")
+        """Query the selected search engine and return the organic results as a list."""
+        print(f"Searching web for: {query} using {self.search_engine}")
+
+        if self.search_engine == "brave":
+            if not self.brave_api_key:
+                print("No Brave API key provided.")
+                return []
+            url = "https://api.search.brave.com/res/v1/web/search"
+            headers = {"Accept": "application/json", "X-Subscription-Token": self.brave_api_key}
+            params = {"q": query, "count": self.num_results}
+            try:
+                resp = requests.get(url, headers=headers, params=params, timeout=20)
+                resp.raise_for_status()
+                data = resp.json()
+                results = data.get("web", {}).get("results", [])
+                print(f"Brave search successful. Found {len(results)} results.")
+                return [
+                    {
+                        "title": r.get("title"),
+                        "snippet": r.get("description"),
+                        "link": r.get("url"),
+                    }
+                    for r in results
+                ]
+            except requests.exceptions.RequestException as e:
+                print(f"Error during Brave web search: {e}")
+                return []
+
+        # Default: SerpAPI
         params = {
             "q": query,
             "api_key": self.serp_api_key,
@@ -62,7 +91,7 @@ class WebVerifier:
             resp.raise_for_status()
             data = resp.json()
             results = data.get("organic_results", [])
-            print(f"Search successful. Found {len(results)} results.")
+            print(f"SerpAPI search successful. Found {len(results)} results.")
             return [
                 {
                     "title": r.get("title"),
@@ -72,7 +101,7 @@ class WebVerifier:
                 for r in results
             ]
         except requests.exceptions.RequestException as e:
-            print(f"Error during web search: {e}")
+            print(f"Error during SerpAPI web search: {e}")
             return []
 
     @staticmethod

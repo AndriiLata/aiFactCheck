@@ -10,7 +10,7 @@ Strategy
    • Verdict         (Verifier2)
 
 2. If the KG verdict is *Not Enough Info*  →  Web / RAG-agent
-   • Paraphrase + Google (SerpAPI)
+   • Paraphrase + Google (SerpAPI or Brave Search)
    • MiniLM similarity filtering
    • Batch NLI           (DeBERTa-v3 MNLI)
    • Weighted vote aggregation
