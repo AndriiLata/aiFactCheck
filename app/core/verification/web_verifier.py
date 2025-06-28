@@ -21,15 +21,23 @@ class WebVerifier:
     """
 
     def __init__(self, num_results: int = 100, search_engine: str = "brave"):
-        self.serp_api_key = settings.SEARCHAPI_KEY
+        self.serp_api_key = getattr(settings, "SERPAPI_KEY", None)
         self.brave_api_key = getattr(settings, "BRAVE_API_KEY", None)
-        self.num_results = num_results
+        # Limit num_results for Brave API (max is usually 20)
+        self.num_results = min(num_results, 20) if search_engine.lower() == "brave" else num_results
         self.search_engine = search_engine.lower()
 
 
     def verify(self, claim: str, triple: Triple) -> Tuple[str, str, List[Dict]]:
         """Run the full verification pipeline: search → build context → classify."""
-        if not self.serp_api_key:
+        # Check if we have any API key for the selected search engine
+        if self.search_engine == "brave" and not self.brave_api_key:
+            return (
+                "Not Enough Info",
+                "Brave search is disabled; no Brave API key provided.",
+                [],
+            )
+        elif self.search_engine != "brave" and not self.serp_api_key:
             return (
                 "Not Enough Info",
                 "Web search is disabled; no SerpAPI key provided.",
@@ -58,25 +66,52 @@ class WebVerifier:
             if not self.brave_api_key:
                 print("No Brave API key provided.")
                 return []
+            
             url = "https://api.search.brave.com/res/v1/web/search"
-            headers = {"Accept": "application/json", "X-Subscription-Token": self.brave_api_key}
-            params = {"q": query, "count": self.num_results}
+            headers = {
+                "Accept": "application/json", 
+                "X-Subscription-Token": self.brave_api_key
+            }
+            params = {
+                "q": query, 
+                "count": self.num_results,
+                "safesearch": "moderate",  # Add safesearch parameter
+                "freshness": "all"        # Add freshness parameter
+            }
+            
             try:
                 resp = requests.get(url, headers=headers, params=params, timeout=20)
+                print(f"Brave API response status: {resp.status_code}")
+                
+                if resp.status_code == 422:
+                    print(f"Brave API 422 error. Response: {resp.text}")
+                    # Try with simplified parameters
+                    params = {"q": query, "count": min(self.num_results, 10)}
+                    resp = requests.get(url, headers=headers, params=params, timeout=20)
+                
                 resp.raise_for_status()
                 data = resp.json()
+                
+                # Check if the response contains an error
+                if "error" in data:
+                    print(f"Brave API error: {data['error']}")
+                    return []
+                
                 results = data.get("web", {}).get("results", [])
                 print(f"Brave search successful. Found {len(results)} results.")
                 return [
                     {
-                        "title": r.get("title"),
-                        "snippet": r.get("description"),
-                        "link": r.get("url"),
+                        "title": r.get("title", ""),
+                        "snippet": r.get("description", ""),
+                        "link": r.get("url", ""),
                     }
                     for r in results
+                    if r.get("description")  # Only include results with descriptions
                 ]
             except requests.exceptions.RequestException as e:
                 print(f"Error during Brave web search: {e}")
+                if hasattr(e, 'response') and e.response is not None:
+                    print(f"Response content: {e.response.text}")
                 return []
 
         # Default: SerpAPI
@@ -87,18 +122,19 @@ class WebVerifier:
             "num": self.num_results,
         }
         try:
-            resp = requests.get("https://www.searchapi.io/api/v1/search", params=params, timeout=20)
+            resp = requests.get("https://serpapi.com/search", params=params, timeout=20)
             resp.raise_for_status()
             data = resp.json()
             results = data.get("organic_results", [])
             print(f"SerpAPI search successful. Found {len(results)} results.")
             return [
                 {
-                    "title": r.get("title"),
-                    "snippet": r.get("snippet"),
-                    "link": r.get("link"),
+                    "title": r.get("title", ""),
+                    "snippet": r.get("snippet", ""),
+                    "link": r.get("link", ""),
                 }
                 for r in results
+                if r.get("snippet")  # Only include results with snippets
             ]
         except requests.exceptions.RequestException as e:
             print(f"Error during SerpAPI web search: {e}")
@@ -114,8 +150,9 @@ class WebVerifier:
             snippet = r.get("snippet", "")
             link = r.get("link", "")
 
-            context_lines.append(f"[{idx + 1}] {title}: {snippet} (Source: {link})")
-            evidence_list.append({"title": title, "snippet": snippet, "link": link})
+            if snippet:  # Only add if snippet exists
+                context_lines.append(f"[{idx + 1}] {title}: {snippet} (Source: {link})")
+                evidence_list.append({"title": title, "snippet": snippet, "link": link})
 
         return "\n\n".join(context_lines), evidence_list
 

@@ -14,7 +14,8 @@ class Settings:
     AZURE_API_KEY: str = os.getenv("AZURE_API_KEY", "")
     AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
     SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
-    SEARCHAPI_KEY = os.getenv("SEARCHAPI_KEY", "")
+    BRAVE_API_KEY = os.getenv("BRAVE_API_KEY", "")
+    
 
 
     PROVIDER_IN_USE: Literal["openai", "azure"] = os.getenv(

@@ -12,12 +12,19 @@ from typing import List
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
+# Add device handling
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 _LABELS = ("contradiction", "neutral", "entailment")
 
 _tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-large-mnli")
 _model = AutoModelForSequenceClassification.from_pretrained(
     "microsoft/deberta-large-mnli"
 ).eval()
+
+# Move model to device on initialization
+_model = _model.to(device)
 
 
 @torch.inference_mode()
@@ -33,7 +40,10 @@ def batch_nli(hypothesis: str, premises: List[str]) -> List[dict]:
             truncation=True,
             padding=True,
         )
-        logits = _model(**{k: v.cuda() if torch.cuda.is_available() else v for k, v in toks.items()}).logits
+        # Move all tensors to the same device
+        toks = {k: v.to(device) for k, v in toks.items()}
+        
+        logits = _model(**toks).logits
         probs = torch.softmax(logits, dim=-1).cpu()
         for p in probs:
             idx = int(torch.argmax(p))

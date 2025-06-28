@@ -49,11 +49,44 @@ def _flatten_edges(ranked_paths: List[Tuple[List[Edge], float]], k: int) -> List
 # ------------------------------------------------------------------ #
 # Main orchestration
 # ------------------------------------------------------------------ #
-def verify_claim_crew(claim: str) -> Dict:
+def verify_claim_crew(claim: str, mode: str = "web_only") -> Dict:
     """
     Multi-agent reasoning wrapper – **no async/await needed**.
     Returns a JSON-serialisable dict ready for `Flask.jsonify`.
+    
+    Args:
+        claim: The claim to verify
+        mode: "hybrid" (KG first, web fallback) or "web_only" (web search only)
     """
+
+        # ---------- WEB-ONLY MODE ------------------------------------------ #
+    if mode == "web_only":
+        print(f"Running in WEB-ONLY mode for claim: {claim}")
+        web_ret = WebEvidenceRetriever()
+        web_ev = web_ret.retrieve(claim)
+
+        if not web_ev:
+            return {
+                "claim": claim,
+                "label": "Not Enough Info",
+                "reason": "Web search produced no usable evidence.",
+                "evidence": [],
+                "mode": "web_only",
+            }
+
+        syn_ev = synthesise(claim, web_ev, top_k=100)
+        nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
+        lbl, conf, annotated_ev = aggregate(syn_ev, nli_out)
+
+        return {
+            "claim": claim,
+            "label": lbl,
+            "confidence": conf,
+            "evidence": annotated_ev,
+            "mode": "web_only",
+        }
+    
+    # ---------- HYBRID MODE (original logic) -------------------------- #
     # ---------- 1.  KG AGENT ---------------------------------------- #
     kg_ret   = KGEvidenceRetriever()
     uris, paths = kg_ret.retrieve(claim)
@@ -92,6 +125,7 @@ def verify_claim_crew(claim: str) -> Dict:
             "label": "Not Enough Info",
             "reason": "Neither KG nor web search produced usable evidence.",
             "evidence": [],
+            "mode": "hybrid",
         }
 
     syn_ev   = synthesise(claim, web_ev, top_k=100)
@@ -104,4 +138,5 @@ def verify_claim_crew(claim: str) -> Dict:
         "confidence": conf,
         "evidence": annotated_ev,
         "fallback_used": True,
+        "mode": "hybrid",
     }
