@@ -154,7 +154,7 @@ if __name__ == "__main__":
     print("[*] Loading dataset...")
 
     #Switch to the relevant line of code
-    data = utils.load_fever_dataset(args.file, drop_NEI=False)
+    data = utils.load_fever_dataset(args.file, drop_NEI=True)
     #data=utils.load_factkg_dataset(args.file)
 
     len_dataset = len(data)

@@ -36,7 +36,7 @@ def verify_web_only():
 def verify_crewAI():
     data = request.get_json(force=True)
     claim = data.get("claim")
-    mode = data.get("mode", "web_only")
+    mode = data.get("mode", "hybrid")
     use_cross_encoder = data.get("use_cross_encoder", True)
     
     if not claim:

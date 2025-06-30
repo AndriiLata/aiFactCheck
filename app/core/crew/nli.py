@@ -47,3 +47,4 @@ def batch_nli(hypothesis: str, premises: List[str]) -> List[dict]:
             idx = int(torch.argmax(p))
             out.append({"label": _LABELS[idx], "confidence": float(p[idx])})
     return out
+   

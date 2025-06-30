@@ -19,7 +19,6 @@ from ..verification.web_verifier import WebVerifier
 from ..extraction.claim_paraphrase import paraphrase_claim
 from .trust import score_for_url
 from ...models import Edge
-from .trust import score_for_url
 
 
 # --------------------------------------------------------------------- #
@@ -62,6 +61,7 @@ class WebEvidenceRetriever:
         self._use_cross_encoder = use_cross_encoder
         self._wv = WebVerifier(num_results=top_k, search_engine=search_engine)
 
+
     def retrieve(self, claim: str) -> List[Dict]:
         """Retrieve and rank evidence using the specified ranking method."""
         
@@ -88,3 +88,4 @@ class WebEvidenceRetriever:
             evidence = synthesise(claim, evidence, top_k=self._top_k, use_cross_encoder=self._use_cross_encoder)
         
         return evidence
+        

@@ -83,3 +83,4 @@ def _synthesise_cross_encoder(claim: str, evidence: List[Dict], top_k: int) -> L
     except Exception as e:
         print(f"Cross-encoder ranking failed: {e}, falling back to bi-encoder")
         return _synthesise_bi_encoder(claim, evidence, top_k)
+        
