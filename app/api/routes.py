@@ -36,17 +36,19 @@ def verify_web_only():
 def verify_crewAI():
     data = request.get_json(force=True)
     claim = data.get("claim")
-    mode = data.get("mode", "web_only")  # Add this line
+    mode = data.get("mode", "web_only")
+    use_cross_encoder = data.get("use_cross_encoder", True)
     
     if not claim:
         return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
     
-    # Validate mode parameter
     if mode not in ["hybrid", "web_only"]:
         return jsonify({"error": "Mode must be 'hybrid' or 'web_only'"}), HTTPStatus.BAD_REQUEST
 
     print(f"Running verification in {mode} mode")
-    out = verify_claim_crew(claim, mode=mode)  # Pass the mode parameter
+    print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
+    
+    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder)
     return jsonify(out), HTTPStatus.OK
 
 

@@ -15,6 +15,7 @@ class Settings:
     AZURE_ENDPOINT: str = os.getenv("AZURE_ENDPOINT", "")
     SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
     BRAVE_API_KEY = os.getenv("BRAVE_API_KEY", "")
+    SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
     
 
 

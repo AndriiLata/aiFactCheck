@@ -12,10 +12,6 @@ from typing import List
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# Add device handling
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
 _LABELS = ("contradiction", "neutral", "entailment")
 
 _tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-large-mnli")
@@ -23,8 +19,9 @@ _model = AutoModelForSequenceClassification.from_pretrained(
     "microsoft/deberta-large-mnli"
 ).eval()
 
-# Move model to device on initialization
-_model = _model.to(device)
+# FIXED: Ensure model is on the correct device consistently
+_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+_model = _model.to(_device)
 
 
 @torch.inference_mode()
@@ -40,8 +37,9 @@ def batch_nli(hypothesis: str, premises: List[str]) -> List[dict]:
             truncation=True,
             padding=True,
         )
-        # Move all tensors to the same device
-        toks = {k: v.to(device) for k, v in toks.items()}
+        
+        # FIXED: Move all tensors to the same device as the model
+        toks = {k: v.to(_device) for k, v in toks.items()}
         
         logits = _model(**toks).logits
         probs = torch.softmax(logits, dim=-1).cpu()
