@@ -11,7 +11,7 @@ from ..ranking.evidence_ranker2 import EvidenceRanker2
 _BI_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def synthesise(claim: str, evidence: List[Dict], top_k: int = 100, use_cross_encoder: bool = False) -> List[Dict]:
+def synthesise(claim: str, evidence: List[Dict], top_k: int = 100, use_cross_encoder: bool = True) -> List[Dict]:
     """
     Rank evidence by relevance to claim using bi-encoder or cross-encoder.
     

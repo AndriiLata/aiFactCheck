@@ -56,7 +56,7 @@ class WebEvidenceRetriever:
     Claim-paraphrase → Google (via SerpAPI/Serper/Brave) → normalised evidence dicts.
     """
 
-    def __init__(self, *, top_k: int = 100, search_engine: str = "serpapi", use_cross_encoder: bool = False) -> None:
+    def __init__(self, *, top_k: int = 100, search_engine: str = "serpapi", use_cross_encoder: bool = True) -> None:
         self._top_k = top_k
         self._use_cross_encoder = use_cross_encoder
         self._wv = WebVerifier(num_results=top_k, search_engine=search_engine)

@@ -49,7 +49,7 @@ def _flatten_edges(ranked_paths: List[Tuple[List[Edge], float]], k: int) -> List
 # ------------------------------------------------------------------ #
 # Main orchestration
 # ------------------------------------------------------------------ #
-def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: bool = False) -> Dict:
+def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: bool = True) -> Dict:
     """
     Multi-agent reasoning wrapper with ranking method support.
     
@@ -95,6 +95,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
     
     elif mode == "hybrid":
         print(f"Running HYBRID mode for claim: {claim}")
+        print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
         
         # ---------- 1.  KG AGENT ---------------------------------------- #
         kg_ret = KGEvidenceRetriever()
@@ -129,7 +130,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         # ---------- 3.  FALLBACK → WEB / RAG agent -------------------- #
         print("KG agent returned 'Not Enough Info', falling back to web search...")
         
-        web_ret = WebEvidenceRetriever(top_k=100, search_engine="serper")
+        web_ret = WebEvidenceRetriever(top_k=100, search_engine="serper", use_cross_encoder=use_cross_encoder)
         web_ev = web_ret.retrieve(claim)
 
         if not web_ev:
@@ -145,7 +146,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                 "kg_success": False,
             }
 
-        syn_ev = synthesise(claim, web_ev, top_k=100)
+        syn_ev = web_ev  # Already synthesised in retrieve()
         nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
         lbl, conf, annotated_ev = aggregate(syn_ev, nli_out)
 
