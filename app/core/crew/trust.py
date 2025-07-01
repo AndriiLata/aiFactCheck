@@ -48,3 +48,5 @@ def score_for_url(url: str) -> float:
             return sc
 
     return _DOMAIN_PRIORS.get("*", 0.5)
+
+

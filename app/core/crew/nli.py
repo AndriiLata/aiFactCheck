@@ -19,6 +19,10 @@ _model = AutoModelForSequenceClassification.from_pretrained(
     "microsoft/deberta-large-mnli"
 ).eval()
 
+# FIXED: Ensure model is on the correct device consistently
+_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+_model = _model.to(_device)
+
 
 @torch.inference_mode()
 def batch_nli(hypothesis: str, premises: List[str]) -> List[dict]:
@@ -33,9 +37,14 @@ def batch_nli(hypothesis: str, premises: List[str]) -> List[dict]:
             truncation=True,
             padding=True,
         )
-        logits = _model(**{k: v.cuda() if torch.cuda.is_available() else v for k, v in toks.items()}).logits
+        
+        # FIXED: Move all tensors to the same device as the model
+        toks = {k: v.to(_device) for k, v in toks.items()}
+        
+        logits = _model(**toks).logits
         probs = torch.softmax(logits, dim=-1).cpu()
         for p in probs:
             idx = int(torch.argmax(p))
             out.append({"label": _LABELS[idx], "confidence": float(p[idx])})
     return out
+   

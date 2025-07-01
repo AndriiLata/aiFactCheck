@@ -7,17 +7,17 @@ import numpy as np
 # Script with various functionality for manual testing
 
 # Small testing file to open previous results
-"""
-with open("Datasets/factkg_api_results400.pkl", "rb") as f:
+
+with open("Datasets/fever_01.07_100", "rb") as f:
     data = pickle.load(f)
     df = data["results"]
     metrics = data["metrics"]
 
 #print(df.iloc[0, 0])
 #print(df.iloc[1])
-#print(metrics)
+print(metrics)
 results_df=df
-"""
+
 
 #Print some sample claims
 """
@@ -147,8 +147,10 @@ for i, claim in enumerate(error_claims, start=1):
     print(f"{i:3d}. {claim}")
 """
 
+"""
 from refined.inference.processor import Refined
 refined = Refined.from_pretrained(model_name='wikipedia_model_with_numbers',
                                   entity_set="wikipedia")
 spans = refined.process_text("Barack Obama was born in Hawaii")
 print(spans)
+"""

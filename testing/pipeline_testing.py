@@ -7,12 +7,16 @@ import requests
 from tqdm import tqdm
 import pandas as pd
 import pickle
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app.config import Settings
 
 settings = Settings()
 
 # Our server port adjust as necessary
-API_URL = "http://127.0.0.1:5000/api/verify2"
+API_URL = "http://127.0.0.1:5000/api/verify_crewAI"
 
 
 # Picks random instances out of a test set, stores them in a file

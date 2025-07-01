@@ -142,29 +142,4 @@ class KGClient2:
         return paths
 
 
-# testing
-"""
-def pretty_print_ranked_paths(ranked_paths: List[Tuple[List[Edge]]]) -> None:
-    def _short(uri: str) -> str:
-        return uri.rsplit("/", 1)[-1].rsplit("#", 1)[-1]
 
-    print(f"\nTop {len(ranked_paths)} ranked paths:")
-    for i, (path) in enumerate(ranked_paths, 1):
-        # flatten subject → predicate → (mid → predicate →) object
-        elems = []
-        for edge in path:
-            elems.append(_short(edge.subject))
-            elems.append(_short(edge.predicate))
-        elems.append(_short(path[-1].object))
-
-        line = " → ".join(elems)
-        print(f"[{i:2d}] {line}")
-
-import time
-t1=time.time()
-kg=KGClient2(degree_threshold=300)
-p=kg.fetch_paths(["http://dbpedia.org/resource/Cambridge_Chronicle", "http://dbpedia.org/resource/Bart_Selman", "http://dbpedia.org/resource/United_States"])
-
-print(time.time()-t1)
-pretty_print_ranked_paths(p)
-"""

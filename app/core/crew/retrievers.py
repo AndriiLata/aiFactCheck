@@ -53,16 +53,18 @@ class KGEvidenceRetriever:
 # --------------------------------------------------------------------- #
 class WebEvidenceRetriever:
     """
-    Claim-paraphrase → Google (via SerpAPI) → normalised evidence dicts.
-    Intended **only** as a *fallback* when the KG agent cannot decide.
+    Claim-paraphrase → Google (via SerpAPI/Serper/Brave) → normalised evidence dicts.
     """
 
-    def __init__(self, *, top_k: int = 100) -> None:
+    def __init__(self, *, top_k: int = 100, search_engine: str = "serpapi", use_cross_encoder: bool = True) -> None:
         self._top_k = top_k
-        self._wv    = WebVerifier(num_results=top_k)
+        self._use_cross_encoder = use_cross_encoder
+        self._wv = WebVerifier(num_results=top_k, search_engine=search_engine)
 
-    # public ----------------------------------------------------------- #
+
     def retrieve(self, claim: str) -> List[Dict]:
+        """Retrieve and rank evidence using the specified ranking method."""
+        
         query = paraphrase_claim(claim)
         search_results = self._wv._search(query)
 
@@ -75,8 +77,15 @@ class WebEvidenceRetriever:
             evidence.append(
                 {
                     "snippet": snip,
-                    "source":  link,
-                    "trust":   score_for_url(link),
+                    "source": link,
+                    "trust": score_for_url(link),
                 }
             )
+        
+        # Apply ranking using synthesiser
+        if evidence:
+            from .synthesiser import synthesise
+            evidence = synthesise(claim, evidence, top_k=self._top_k, use_cross_encoder=self._use_cross_encoder)
+        
         return evidence
+        

@@ -4,7 +4,7 @@ import json
 
 # Class containing the utils specific to the FactKG Dataset
 
-def load_fever_dataset(path: str, drop_NEI=False) -> dict:
+def load_fever_dataset(path: str, drop_NEI=True) -> dict:
     """Loads FEVER dataset from .jsonl and converts it to FactKG-like dict format."""
     dataset = {}
 
