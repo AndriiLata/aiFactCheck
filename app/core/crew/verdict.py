@@ -6,7 +6,7 @@ from typing import List, Dict, Tuple
 
 
 def _aggregate(
-    evidence: List[Dict], nli_out: List[Dict]
+    evidence: List[Dict], nli_out: List[Dict], threshold=0.01
 ) -> Tuple[str, float, List[Dict]]:
     support, refute = 0.0, 0.0
     final_ev = []
@@ -31,7 +31,7 @@ def _aggregate(
             refute += weight
 
     total = support + refute
-    if total > 0.6:
+    if total > threshold:
         label = "Supported" if support > refute else "Refuted"
     else:
         label = "Not Enough Info"

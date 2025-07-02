@@ -25,26 +25,7 @@ class Verifier2:
         print(ev)
 
         """
-        system = {
-            "role": "system",
-            "content": (
-                "You are a factual consistency expert. Decide whether the claim "
-                "is Supported, Refuted, or Not Enough Info based ONLY on the "
-                "evidence. Only return Not Enough Info if you absolutely have to. "
-                "The original labels are only Supported and Refuted."
-            ),
-        }
-        user = {
-            "role": "user",
-            "content": (
-                f"Claim: {claim}\n\n"
-                f"Evidence paths:\n{ev}\n\n"
-                "Respond with a JSON object {\"label\": ..., \"reason\": ...} "
-                "where label ∈ {Supported, Refuted, Not Enough Info}.  "
-                "Keep the reason to one short paragraph."
-            ),
-        }
-        """
+        #Gives Less NEI
         system = {
             "role": "system",
             "content": (
@@ -81,62 +62,9 @@ class Verifier2:
                 "{\"label\":\"Refuted\",\"reason\":\"Path 1 shows Bob’s birthplace is Germany, not France.\"}"
             ),
         }
-        """
-        system = {
-            "role": "system",
-            "content": (
-                "You are a world-class fact-verification assistant.\n"
-                "Task: Given a claim and a small list of numbered evidence paths, choose exactly one label:\n"
-                "  • Supported      – a path literally affirms the claim’s exact assertion.\n"
-                "  • Refuted        – a path literally contradicts the claim’s exact assertion.\n"
-                "  • Not Enough Info – otherwise, or if ambiguous.\n"
-                "\n"
-                "Rules:\n"
-                "1. Only use the provided numbered paths; do not invent facts.\n"
-                "2. If you hesitate between Supported or Refuted, default to Not Enough Info.\n"
-                "3. Keep your reasoning private—do NOT expose chain-of-thought.\n"
-                "4. Output *only* one JSON object matching this schema:\n"
-                "{\n"
-                "  \"label\": <Supported|Refuted|Not Enough Info>,\n"
-                "  \"reason\": <one short sentence naming the path number(s) and exact match>\n"
-                "}"
-            ),
-        }
         
-        user = {
-            "role": "user",
-            "content": (
-                f"Claim: {claim}\n\n"
-                f"Evidence paths:\n{ev}\n\n"
-                "Instruction:\n"
-                "- Label Supported only if a path’s predicate + object exactly affirm the claim.\n"
-                "- Label Refuted only if a path’s predicate + object directly contradict the claim.\n"
-                "- Otherwise (or if uncertain), label Not Enough Info.\n\n"
-                "Examples:\n"
-                "\n"
-                "**Supported Example**\n"
-                "Claim: “Alice’s birthPlace is Canada.”\n"
-                "1. Alice → birthPlace → Canada\n\n"
-                "Output:\n"
-                "{\"label\":\"Supported\",\"reason\":\"Path 1 exactly matches birthPlace → Canada.\"}\n"
-                "\n"
-                "**Refuted Example**\n"
-                "Claim: “Bob was born in France.”\n"
-                "1. Bob → birthPlace → Germany\n\n"
-                "Output:\n"
-                "{\"label\":\"Refuted\",\"reason\":\"Path 1 birthPlace → Germany contradicts ‘born in France’.\"}\n"
-                "\n"
-                "**Borderline → Not Enough Info**\n"
-                "Claim: “Carol’s nationality is Spanish.”\n"
-                "1. Carol → birthPlace → Barcelona\n\n"
-                "Output:\n"
-                "{\"label\":\"Not Enough Info\",\"reason\":\"birthPlace → Barcelona does not confirm nationality.\"}\n"
-            )
-        }
     
-
-
-
+        """
         system = {
             "role": "system",
             "content": (
@@ -188,7 +116,7 @@ class Verifier2:
                 "{\"label\":\"Not Enough Info\",\"reason\":\"Path 1 does not confirm nationality.\"}"
             ),
         }
-        """
+
 
         reply = chat([system, user])
 

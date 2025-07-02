@@ -8,6 +8,7 @@ import time
 from flask import request, jsonify
 
 from . import api_bp
+from ..core.crew.nli import batch_nli
 from ..core.extraction.triple_extractor import parse_claim_to_triple
 from ..core.linking.entity_linker import EntityLinker
 from ..infrastructure.kg.kg_client import KGClient
@@ -37,6 +38,7 @@ def verify_crewAI():
     data = request.get_json(force=True)
     claim = data.get("claim")
     mode = data.get("mode", "hybrid")  # Default to hybrid
+    mode="hybrid"
     use_cross_encoder = data.get("use_cross_encoder", True)  # Default to cross-encoder
     
     if not claim:
@@ -48,7 +50,7 @@ def verify_crewAI():
     print(f"Running verification in {mode} mode")
     print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
     
-    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder)
+    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder, classifierDbpedia="LLM", classifierBackup="LLM")
     return jsonify(out), HTTPStatus.OK
 
 
@@ -260,7 +262,8 @@ def verify2():
 
     # 4 ── rank evidence ----------------------------------------------------
     from ..core.ranking.evidence_ranker2 import EvidenceRanker2
-    top_k=3
+    #top_k=3
+    top_k=5
     ranker = EvidenceRanker2(claim_text=claim)
     ranked: List[Tuple[List[Edge], float]] = time_step("5. evidence_ranking", ranker.top_k, paths, k=top_k,
                                                        use_bi_encoder=False)
@@ -294,14 +297,45 @@ def verify2():
     # 5 ── verification -----------------------------------------------------
     evidence=[edge for path, _ in ranked for edge in path]
     evidence=evidence[0:top_k]
-    label, reason = time_step("6. final_verification", verifier.classify, claim, evidence)
+    #label, reason = time_step("6. final_verification", verifier.classify, claim, evidence)
 
+    def _format_name(name: str) -> str:
+        return name.split("/")[-1].replace("_", " ").strip()
+
+    ev_list = [
+        {
+            "snippet": f"{_format_name(e.subject)} → {_format_name(e.predicate)} → {_format_name(e.object)}",
+            "trust": 1.0,  # Standard-Vertrauenswert
+            "source": "knowledge_graph"  # Quelle der Information
+        }
+        for e in evidence
+    ]
+
+    from app.core.crew.verdict import _aggregate as aggregate
+
+    nli_out = batch_nli(claim, [e["snippet"] for e in ev_list])
+    lbl, conf, annotated_ev = aggregate(ev_list, nli_out)
+
+    """
     return jsonify(
         {
             "claim": claim,
             "all_top_evidence_paths": [[e.__dict__ for e in p] for p in all_top],
             "label": label,
             "reason": reason,
+            "entity_linking": {
+                "candidates": dbp,
+            },
+            **({"timing_info": timing_info} if settings.TIME_STEPS else {}),
+        }
+    ), HTTPStatus.OK
+    """
+    return jsonify(
+        {
+            "claim": claim,
+            "all_top_evidence_paths": [[e.__dict__ for e in p] for p in all_top],
+            "label": lbl,
+            "reason": annotated_ev,
             "entity_linking": {
                 "candidates": dbp,
             },
