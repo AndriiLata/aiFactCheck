@@ -1,0 +1,103 @@
+nr;claim;true_label;predicted_label;found_evidence;llm_explanation;human_annotated;notes
+1;Gwen Stefani received two Billboard Music Awards in 2007.;NOT ENOUGH INFO;Refuted;"[1] Gwen Stefani - NRJ Music Awards (01.20.2007) · Read More · Gwen Stefani - Billboard Music Awards (12.04.2006).
+    Source: https://shefani-archive.info/live-performances-gwen-stefani/tag/Award+Show
+    Trust: 0.50
+    Confidence: 0.60
+
+[2] ... Gwen Stefani, 2004 Billboard Music Awards. Gregg DeGuire / WireImage. 10/27 ... On April 21, 2007, Gwen Stefani embarked on her ""The Sweet ...
+    Source: https://www.wonderwall.com/entertainment/music/gwen-stefani-biggest-career-moments-3021514.gallery
+    Trust: 0.50
+    Confidence: 0.50
+
+[3] Gwen Stefani - The Sweet Escape (Ellen Degeneres Show, 2007). 81K ... No Doubt It's My Life - Billboard Music Awards 2003 - 480p. Lee ...
+    Source: https://www.youtube.com/watch?v=dyx5-9Szv1U
+    Trust: 0.50
+    Confidence: 0.61
+
+[4] ... Billboard Hot 100 year-end chart of 2007. ... As a solo artist, she has received an American Music Award, Brit Award, World Music Award, and two Billboard Music ...
+    Source: https://app.discotech.me/articles/best-gwen-stefani-songs-of-all-time-top-tracks
+    Trust: 0.50
+    Confidence: 0.98
+
+[5] Stefani's accolades include three Grammy Awards, an American Music Award, a Brit Award, a World Music Award, and two Billboard Music Awards. She received a ...
+    Source: https://en.wikipedia.org/wiki/Gwen_Stefani
+    Trust: 0.50
+    Confidence: 0.99
+
+... and 94 more evidence items";"The evidence regarding the claim that Gwen Stefani received two Billboard Music Awards in 2007 is insufficient. 
+
+While several pieces of evidence mention that Gwen Stefani has received two Billboard Music Awards, they do not specify the year in which these awards were received. Additionally, one piece of evidence explicitly states that the Billboard Music Awards were not held at all from 2007 to 2010, which contradicts the claim that she received awards in 2007. 
+
+The evidence includes multiple contradictions and neutral statements, but none confirm the specific claim about the awards in 2007. Therefore, the overall conclusion is that the evidence does not clearly support the claim, and it is insufficient to validate it.";;
+2;Will Ferrell distinguished himself on Saturday Night Live.;NOT ENOUGH INFO;Supported;"[1] It was a 'Saturday Night Live' reunion when former cast member Will Ferrell returned to the NBC sketch comedy show to serve as host and join the distinguished ...
+    Source: https://www.hollywoodreporter.com/video/snl-rewind-will-ferrell-returns-serve-as-host-watch-1257905/
+    Trust: 0.50
+    Confidence: 0.66
+
+[2] Will Ferrell is reflecting on his Saturday Night Live impersonations and has some regrets.
+    Source: https://deadline.com/2024/09/will-ferrell-regrets-janet-reno-snl-impersonation-1236084161/
+    Trust: 0.50
+    Confidence: 0.85
+
+[3] As Saturday Night Live marks its milestone 50th season, Will Ferrell is sharing fond memories of his tenure on the NBC sketch comedy show.
+    Source: https://www.imdb.com/news/ni64984944/
+    Trust: 0.50
+    Confidence: 0.91
+
+[4] Will Ferrell is an American comedy actor and writer known for his impersonations, notably of Alex Trebek and George W. Bush on Saturday ...
+    Source: https://www.britannica.com/biography/Will-Ferrell
+    Trust: 0.50
+    Confidence: 0.56
+
+[5] If I'm the one making the decision, then Will Ferrell is the best Saturday Night Live cast member of all time. His seven seasons on the show ( ...
+    Source: https://jmunney.com/2013/03/25/saturday-night-live-the-will-ferrell-era-ten-representative-episodes/
+    Trust: 0.50
+    Confidence: 0.76
+
+... and 93 more evidence items";"The evidence provided is largely supportive of the claim that Will Ferrell distinguished himself on Saturday Night Live (SNL). Here are the key points that support this conclusion:
+
+1. **Tenure and Popularity**: Multiple snippets indicate that Ferrell had a significant impact during his seven seasons on SNL, where he played various memorable characters and impersonations, such as George W. Bush and Alex Trebek. For example, one snippet states, ""Will Ferrell gained massive popularity for the various characters he brought to life on SNL,"" which directly supports the claim of his distinction.
+
+2. **Recognition and Awards**: The evidence mentions that Ferrell was nominated for an Emmy for his work on SNL, which highlights his recognition as a talented performer. Additionally, he is noted as one of the best-loved cast members, further emphasizing his distinguished status.
+
+3. **Cultural Impact**: Several snippets refer to Ferrell's sketches and characters as iconic, contributing to the show's legacy. For instance, one snippet mentions that his performances were part of ""one of the most brilliant runs in the show's history,"" indicating that he left a lasting mark on SNL.
+
+4. **Community and Legacy**: The evidence also discusses Ferrell's return to SNL for special events, such as the 50th anniversary, which underscores his ongoing relevance and the affection held for him by both the audience and fellow cast members.
+
+While some snippets are neutral or provide context about his reflections on his time at SNL, they do not contradict the claim. Instead, they reinforce the idea that Ferrell's contributions were significant and memorable.
+
+In conclusion, the evidence is sufficient to support the claim that Will Ferrell distinguished himself on Saturday Night Live, as it highlights his popularity, recognition, and lasting impact on the show.";;
+3;Dustin Hoffman works on Broadway.;NOT ENOUGH INFO;Supported;"[1] Hoffman made his Broadway debut in the 1961 play A Cook for Mr. General. He subsequently starred as Willy Loman in the 1984 revival of Death of a Salesman and ...
+    Source: https://www.broadwayworld.com/people/Dustin-Hoffman/
+    Trust: 0.50
+    Confidence: 0.98
+
+[2] Dustin Hoffman is credited as Stage Manager, Performer, Director, Producer and Source Material.
+    Source: https://www.ibdb.com/broadway-cast-staff/dustin-hoffman-15122
+    Trust: 0.50
+    Confidence: 0.99
+
+[3] Dustin Hoffman performance credits: The Merchant of Venice, Peter Hall Company, Punch Productions, 46th Street Theatre, New York, NY, Nov 29, 1989 – Mar 10, ...
+    Source: https://www.abouttheartists.com/artists/315262-dustin-hoffman
+    Trust: 0.50
+    Confidence: 0.91
+
+[4] He has returned to the stage in two classic roles: Hoffman played Willy Loman on Broadway in Arthur Miller's “Death of a Salesman” in 1984, and ...
+    Source: https://www.latimes.com/entertainment/arts/la-xpm-2012-sep-12-la-et-cm-0912-the-theater-side-of-dustin-hoffmans-brilliant-career-20120912-story.html
+    Trust: 0.50
+    Confidence: 0.95
+
+[5] Hoffman then studied at Actors Studio and became a dedicated method actor. In 1960 Hoffman was cast in a role in an off-Broadway production and followed with a ...
+    Source: https://en.wikipedia.org/wiki/Dustin_Hoffman
+    Trust: 0.50
+    Confidence: 0.75
+
+... and 4 more evidence items";"The evidence provided is sufficient to support the claim that Dustin Hoffman works on Broadway. 
+
+1. Multiple sources confirm that Hoffman made his Broadway debut in 1961 and starred in significant productions, including the 1984 revival of ""Death of a Salesman,"" where he played the lead role of Willy Loman. This is explicitly stated in the snippets from sources like BroadwayWorld and the LA Times, which provide clear examples of his involvement in Broadway productions.
+
+2. The evidence also includes references to Hoffman's roles and contributions as a performer, director, and producer on Broadway, further solidifying his connection to the theater scene.
+
+3. While one piece of evidence indicates a contradiction regarding his early career (mentioning off-Broadway work), it does not negate the overall claim that he has worked on Broadway, as the majority of the evidence supports his significant contributions to Broadway productions.
+
+Overall, the evidence clearly supports the claim that Dustin Hoffman works on Broadway, as it highlights his notable performances and roles in Broadway productions.";;

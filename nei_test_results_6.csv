@@ -1,0 +1,220 @@
+nr;claim;true_label;predicted_label;found_evidence;llm_explanation;human_annotated;notes
+1;Felicity Jones was nominated for a Grammy Award.;NOT ENOUGH INFO;Refuted;"[1] Elsewhere, Felicity Jones is nominated for best supporting actress for The Brutalist - a decade after her first Oscar nomination - while Sir ...
+    Source: https://www.bbc.co.uk/news/articles/c9vmgw2m17mo
+    Trust: 0.900
+    Confidence: 0.967
+    Weight: 0.870
+    NLI: contradiction
+
+[2] List of nominations in full for Oscars 2025 · Monica Barbaro - A Complete Unknown · Ariana Grande - Wicked · Felicity Jones - The Brutalist.
+    Source: https://www.bbc.co.uk/news/articles/c4gp3ke6lzko
+    Trust: 0.900
+    Confidence: 0.964
+    Weight: 0.867
+    NLI: contradiction
+
+[3] English actress Felicity Jones, a fan of black, chose a navy Prada gown with cut-outs for the Academy of Motion Picture Arts and Sciences 2014 Governors Awards.
+    Source: https://www.nytimes.com/projects/awards-season/2014/red-carpet/felicity-jones/
+    Trust: 0.900
+    Confidence: 0.821
+    Weight: 0.739
+    NLI: contradiction
+
+[4] Actress Felicity Jones says she jumped out of joy on receiving an Oscar nomination for her performance in Stephen Hawking biopic 'The Theory Of Everything'.
+    Source: https://indianexpress.com/article/entertainment/hollywood/oscar-nomination-left-me-speechless-felicity-jones/
+    Trust: 0.500
+    Confidence: 0.998
+    Weight: 0.499
+    NLI: contradiction
+
+[5] Felicity Jones is nominated for her second Academy Award for her role in 'The Brutalist' but she was also attending the Newport Beach Film ...
+    Source: https://www.youtube.com/watch?v=A82fMy0W3IU
+    Trust: 0.500
+    Confidence: 0.996
+    Weight: 0.498
+    NLI: contradiction
+
+[6] Congratulations to Felicity Jones for Academy Award Nomination - Best supporting actress as Erzsébet Tóth in The Brutalist.
+    Source: https://www.instagram.com/tommunrostudio/p/DFn0umfRCSV/
+    Trust: 0.500
+    Confidence: 0.996
+    Weight: 0.498
+    NLI: contradiction
+
+[7] Nominated for an Academy Award for her role in #TheBrutalist, Felicity Jones talks about the response the film has received.
+    Source: https://www.facebook.com/bbctheoneshow/videos/nominated-for-an-academy-award-for-her-role-in-thebrutalist-felicity-jones-talks/9458463080838691/
+    Trust: 0.500
+    Confidence: 0.997
+    Weight: 0.498
+    NLI: contradiction
+
+[8] It's something Felicity Jones knows a lot about. The British actress was nominated for a Best Actress Oscar for her role as Jane Hawking ...
+    Source: https://www.refinery29.com/en-us/2015/04/85019/felicity-jones-defends-roles-for-women
+    Trust: 0.500
+    Confidence: 0.995
+    Weight: 0.497
+    NLI: contradiction
+
+[9] Congratulations to Felicity Jones on her Academy Award nomination for Best Supporting Actress in 'The Brutalist' at this year's Oscars! She ...
+    Source: https://www.threads.com/@_raggedywho/post/DFLGEYSoPKu
+    Trust: 0.500
+    Confidence: 0.995
+    Weight: 0.497
+    NLI: contradiction
+
+[10] Felicity Jones, nominated for best supporting actress at the Oscars for The Brutalist, said interesting female roles are “few and far ...
+    Source: https://www.linkedin.com/posts/bbc-news_felicity-jones-nominated-for-best-supporting-activity-7289680123618811907--u-u
+    Trust: 0.500
+    Confidence: 0.994
+    Weight: 0.497
+    NLI: contradiction
+
+... (84 additional evidence items were found but not shown)";"The evidence clearly refutes the claim that Felicity Jones was nominated for a Grammy Award. All the evidence provided indicates that she has received nominations for Academy Awards (Oscars) for her performances in films, specifically mentioning her nomination for ""The Brutalist."" There is no mention of any Grammy nominations in the evidence, which focuses solely on her achievements in film rather than music. Therefore, the claim is unsupported and can be considered false based on the available evidence.";;
+2;Ford Motor Company is half as large as General Motors.;NOT ENOUGH INFO;Supported;"[1] This case explores the very different paths taken by the Ford Motor Company and the General Motors Corporation in the first three decades of the twentieth ...
+    Source: https://www.hbs.edu/faculty/Pages/item.aspx?num=45289
+    Trust: 0.950
+    Confidence: 0.996
+    Weight: 0.946
+    NLI: neutral
+
+[2] This article will utilize annual company reports of Ford Motor Company and General Motors to show how dramatic changes in domestic market share.
+    Source: https://opensiuc.lib.siu.edu/cgi/viewcontent.cgi?article=1058&context=legacy
+    Trust: 0.950
+    Confidence: 0.995
+    Weight: 0.945
+    NLI: neutral
+
+[3] Like Ford Motor Company, General Motors had always graciously accepted trade ... Both Ford and Chrysler also offered similar programs; however, they ...
+    Source: https://pressbooks.ulib.csuohio.edu/evolution-of-local-dealerships/chapter/chapter-6-the-industry-leader-general-motors-corporation/
+    Trust: 0.950
+    Confidence: 0.992
+    Weight: 0.942
+    NLI: neutral
+
+[4] ... General Motors, and vice versa.” By 2009, in the depths of the ... Ford CEO Jim Hackett announced the company “will not invest in next ...
+    Source: https://knowledge.wharton.upenn.edu/podcast/knowledge-at-wharton-podcast/auto-bailout-ten-years-later-right-call/
+    Trust: 0.950
+    Confidence: 0.974
+    Weight: 0.925
+    NLI: neutral
+
+[5] In the race to be second to Tesla in the U.S. electric vehicle market, Ford Motor leaped to an early lead four years ago over its crosstown ...
+    Source: https://www.nytimes.com/2024/10/29/business/ford-general-motors-electric-vehicles.html
+    Trust: 0.900
+    Confidence: 0.963
+    Weight: 0.866
+    NLI: neutral
+
+[6] Ford Motor and General Motors haven't done much for their investors lately. GM is the winner of the two, with gains of 3% since March 2017.
+    Source: https://www.nasdaq.com/articles/better-buy-ford-motor-co-vs-general-motors-2018-03-27
+    Trust: 0.500
+    Confidence: 0.997
+    Weight: 0.499
+    NLI: neutral
+
+[7] Compare Ford Motor Co and General Motors Co with an in-depth analysis of performance, growth potential, and key metrics. Discover which stock suits your ...
+    Source: https://taurigo.com/stocks/F/comparison/GM
+    Trust: 0.500
+    Confidence: 0.997
+    Weight: 0.499
+    NLI: neutral
+
+[8] See the company profile for Ford Motor Company (F) including business summary, industry/sector information, number of employees, business summary, ...
+    Source: https://finance.yahoo.com/quote/F/profile/
+    Trust: 0.500
+    Confidence: 0.998
+    Weight: 0.499
+    NLI: neutral
+
+[9] He's also still bullish on shares of Ford Motor Co., as he believes U.S.-based carmakers can beat their international rivals in a price war.
+    Source: https://www.marketwatch.com/story/gm-and-ford-will-be-hurt-by-tariffs-but-heres-why-the-stocks-are-still-a-buy-0130f9e7
+    Trust: 0.500
+    Confidence: 0.998
+    Weight: 0.499
+    NLI: neutral
+
+[10] Suddenly, Ford Motor (F ) is the automaker under pressure and General Motors (GM ) is heading higher. Ford Motor CEO Alan Mulally ( ...
+    Source: https://www.barrons.com/articles/general-motors-vs-ford-whos-the-also-ran-now-1398971440
+    Trust: 0.500
+    Confidence: 0.996
+    Weight: 0.498
+    NLI: neutral
+
+... (88 additional evidence items were found but not shown)";"The evidence provided does not clearly support or refute the claim that ""Ford Motor Company is half as large as General Motors."" The snippets retrieved are primarily neutral in nature and do not provide specific quantitative comparisons of the sizes of the two companies, such as revenue, market capitalization, or production volume.
+
+While some snippets mention comparisons between Ford and General Motors, they do not offer concrete data or metrics that would allow for a determination of whether Ford is indeed half the size of GM. The references to market share, performance, and stock comparisons do not directly address the claim regarding the relative size of the two companies.
+
+Therefore, the evidence is insufficient to support or refute the claim. More specific financial data or metrics comparing the two companies directly would be needed to evaluate the accuracy of the claim.";;
+3;R. Madhavan was in the cast of 3 Kingdoms.;NOT ENOUGH INFO;Refuted;"[1] Why no lessons on southern kingdoms in school history textbooks, asks R. Madhavan. The 54-year-old actor's remark comes after NCERT recently ...
+    Source: https://www.telegraphindia.com/entertainment/why-no-lessons-on-southern-kingdoms-in-school-history-textbooks-asks-r-madhavan/cid/2097312
+    Trust: 0.500
+    Confidence: 0.996
+    Weight: 0.498
+    NLI: neutral
+
+[2] R Madhavan was last seen in 'Kesari Chapter 2', he plays Neville McKinley in the film, a British lawyer who opposes Akshay Kumar's character, ...
+    Source: https://timesofindia.indiatimes.com/entertainment/hindi/bollywood/news/ncert-row-r-madhavan-questions-chola-empires-absence-in-textbooks-criticises-mughal-focused-syllabus/articleshow/120807609.cms
+    Trust: 0.500
+    Confidence: 0.992
+    Weight: 0.496
+    NLI: contradiction
+
+[3] Actor R Madhavan has criticised the historical content in Indian school textbooks, highlighting a disproportionate focus on Mughal and British ...
+    Source: https://m.economictimes.com/magazines/panache/people-in-korea-speak-half-tamil-says-madhavan-as-he-questions-ncert-for-ignoring-southern-india-history/articleshow/120829404.cms
+    Trust: 0.500
+    Confidence: 0.987
+    Weight: 0.494
+    NLI: neutral
+
+[4] Madhavan · Madhavan · Maara. (as Madhavan R) · Shraddha Srinath · Shraddha Srinath · Paaru · Sshivada · Sshivada · Kani · Mouli · Mouli · Vellaiya · Alexander Babu.
+    Source: https://www.imdb.com/title/tt9319874/fullcredits/
+    Trust: 0.500
+    Confidence: 0.982
+    Weight: 0.491
+    NLI: neutral
+
+[5] R. Madhavan continues to shine on streaming platforms, effortlessly blending into diverse roles—from the intense Breathe on Prime Video to the gripping ...
+    Source: https://www.instagram.com/p/DKO0603yqxJ/
+    Trust: 0.500
+    Confidence: 0.972
+    Weight: 0.486
+    NLI: neutral
+
+[6] ... Madhavan Cast & Crew • ✨ R Madhavan, Fatima Sana Shaikh • Also starring: Ayesha Raza, Manish Chaudhari, Namit Das • Directed by ...
+    Source: https://www.facebook.com/Indiawoodby1ls/posts/r-madhavan-and-fatima-sana-shaikh-bring-a-fresh-yet-grounded-love-story-to-life-/698491346403968/
+    Trust: 0.500
+    Confidence: 0.967
+    Weight: 0.484
+    NLI: contradiction
+
+[7] ... Madhavan Cast & Crew • ✨ R Madhavan, Fatima Sana Shaikh • Also starring: Ayesha Raza, Manish Chaudhari, Namit Das • Directed by ...
+    Source: https://m.facebook.com/Indiawoodby1ls/photos/r-madhavan-and-fatima-sana-shaikh-bring-a-fresh-yet-grounded-love-story-to-life-/698491306403972/
+    Trust: 0.500
+    Confidence: 0.967
+    Weight: 0.484
+    NLI: contradiction
+
+[8] Madhavan was cast alongside Kamal Haasan in Anbe Sivam (2003), which told the story of an unexpected journey from Bhubaneswar to Chennai of two men who are ...
+    Source: https://en.wikipedia.org/wiki/R._Madhavan
+    Trust: 0.500
+    Confidence: 0.967
+    Weight: 0.483
+    NLI: contradiction
+
+[9] Cast ; R. Madhavan as Yaatharth Sinha ; Khushalii Kumar as Saanchi Sinha ; Aparshakti Khurana as Haq Riyaz Gul ; Darshan Kumar as ACP Harishchandra Malik ; Vasuki ...
+    Source: https://en.wikipedia.org/wiki/Dhokha:_Round_D_Corner
+    Trust: 0.500
+    Confidence: 0.961
+    Weight: 0.480
+    NLI: neutral
+
+[10] Cast ; Madhavan · Nambi Narayanan ; Simran · Meena Narayanan ; Rajit Kapoor · Vikram A Sarabhai (Hindi. /English Version) ; Ravi Raghavendra · Vikram A Sarabhai (Tamil.
+    Source: https://www.imdb.com/title/tt9263550/fullcredits/
+    Trust: 0.500
+    Confidence: 0.959
+    Weight: 0.480
+    NLI: neutral";"The evidence is insufficient to support or refute the claim that R. Madhavan was in the cast of ""3 Kingdoms."" 
+
+While the evidence includes various snippets about R. Madhavan's recent projects and comments, none of the snippets explicitly mention ""3 Kingdoms"" or confirm his involvement in that specific production. The snippets primarily discuss his roles in other films and his opinions on educational content, but they do not provide any direct information regarding his participation in ""3 Kingdoms."" 
+
+Therefore, without clear evidence linking R. Madhavan to the cast of ""3 Kingdoms,"" we cannot definitively support or refute the claim.";;
