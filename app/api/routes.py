@@ -50,7 +50,7 @@ def verify_crewAI():
     print(f"Running verification in {mode} mode")
     print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
     
-    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder, classifierDbpedia="LLM", classifierBackup="LLM")
+    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder, classifierDbpedia="LLM", classifierBackup="DEBERTA")
     return jsonify(out), HTTPStatus.OK
 
 
