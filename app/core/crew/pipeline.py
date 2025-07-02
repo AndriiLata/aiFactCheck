@@ -30,6 +30,7 @@ from ..verification.verifier2 import Verifier2
 from .synthesiser import synthesise
 from .nli import batch_nli
 from .verdict import _aggregate as aggregate
+from ..verification.verifier3 import Verifier3
 from ...models import Edge
 
 
@@ -49,7 +50,7 @@ def _flatten_edges(ranked_paths: List[Tuple[List[Edge], float]], k: int) -> List
 # ------------------------------------------------------------------ #
 # Main orchestration
 # ------------------------------------------------------------------ #
-def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: bool = True) -> Dict:
+def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: bool = True, classifierDbpedia:str ="LLM", classifierBackup:str ="LLM") -> Dict:
     """
     Multi-agent reasoning wrapper with ranking method support.
     
@@ -65,7 +66,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
         
         # Pass ranking preference to WebEvidenceRetriever
-        web_ret = WebEvidenceRetriever(top_k=100, search_engine="serper", use_cross_encoder=use_cross_encoder)
+        web_ret = WebEvidenceRetriever(search_k= 100, top_k=5, search_engine="serper", use_cross_encoder=use_cross_encoder)
         web_ev = web_ret.retrieve(claim)
 
         if not web_ev:
@@ -80,18 +81,38 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         # Evidence is already ranked by WebEvidenceRetriever, so we can skip synthesise here
         # Or apply final synthesis if you want double-ranking
         syn_ev = web_ev  # Already synthesised in retrieve()
-        nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
-        lbl, conf, annotated_ev = aggregate(syn_ev, nli_out)
+        print(f"Synthesised evidence: {syn_ev}")
 
-        return {
-            "claim": claim,
-            "label": lbl,
-            "confidence": conf,
-            "evidence": annotated_ev,
-            "mode": "web_only",
-            "evidence_count": len(syn_ev),
-            "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder"
-        }
+        if classifierBackup=="DEBERTA":
+            nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
+            lbl, conf, annotated_ev = aggregate(syn_ev, nli_out, threshold=0.01)
+
+            return {
+                "claim": claim,
+                "label": lbl,
+                "confidence": conf,
+                "evidence": annotated_ev,
+                "mode": "web_only, DEBERTA",
+                "evidence_count": len(syn_ev),
+                "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder"
+            }
+        else:
+            v=Verifier3()
+            LLM_ev=[e["snippet"] for e in syn_ev]
+            LLM_ev=LLM_ev[0:min(3,len(LLM_ev))]
+            lbl, annotated_ev=v.classify(claim, LLM_ev)
+
+            return {
+                "claim": claim,
+                "label": lbl,
+                "evidence": syn_ev,
+                "reason": annotated_ev,
+                "mode": "web_only,LLM",
+                "evidence_count": len(syn_ev),
+                "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder"
+            }
+
+
     
     elif mode == "hybrid":
         print(f"Running HYBRID mode for claim: {claim}")
@@ -106,31 +127,67 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
             ranked = ranker.top_k(paths, k=3, use_bi_encoder=False)
             edges = _flatten_edges(ranked, k=3)
 
-            verifier = Verifier2()
-            label, reason = verifier.classify(claim, edges)
-        else:
-            ranked, label, reason = [], "Not Enough Info", "No KG evidence retrieved."
+            if classifierDbpedia=="DEBERTA":
+                evidence = [edge for path, _ in ranked for edge in path]
+                evidence = evidence[0:3]
 
-        # ---------- 2.  SUCCESS on KG branch --------------------------- #
-        if label in ("Supported", "Refuted"):
-            return {
-                "claim": claim,
-                "label": label,
-                "reason": reason,
-                "all_top_evidence_paths": [
-                    [e.__dict__ for e in p] for p, _ in ranked
-                ],
-                "entity_linking": {
-                    "candidates": uris,
-                },
-                "mode": "hybrid",
-                "kg_success": True,
-            }
+                def _format_name(name: str) -> str:
+                    return name.split("/")[-1].replace("_", " ").strip()
+
+                ev_list = [
+                    {
+                        "snippet": f"{_format_name(e.subject)} → {_format_name(e.predicate)} → {_format_name(e.object)}",
+                        "trust": 1.0,  # Standard-Vertrauenswert
+                        "source": "knowledge_graph"  # Quelle der Information
+                    }
+                    for e in evidence
+                ]
+
+
+
+                nli_out = batch_nli(claim, [e["snippet"] for e in ev_list])
+                lbl, conf, annotated_ev = aggregate(ev_list, nli_out, threshold=0.6)
+
+                if lbl in ("Supported", "Refuted"):
+                    return {
+                        "claim": claim,
+                        "label": lbl,
+                        "reason": annotated_ev,
+                        "all_top_evidence_paths": [
+                            [e.__dict__ for e in p] for p, _ in ranked
+                        ],
+                        "entity_linking": {
+                            "candidates": uris,
+                        },
+                        "mode": "hybrid",
+                        "kg_success": True,
+                    }
+
+            else:
+                verifier = Verifier2()
+                label, reason = verifier.classify(claim, edges)
+
+                if label in ("Supported", "Refuted"):
+                    return {
+                        "claim": claim,
+                        "label": label,
+                        "reason": reason,
+                        "all_top_evidence_paths": [
+                            [e.__dict__ for e in p] for p, _ in ranked
+                        ],
+                        "entity_linking": {
+                            "candidates": uris,
+                        },
+                        "mode": "hybrid",
+                        "kg_success": True,
+                    }
+
 
         # ---------- 3.  FALLBACK → WEB / RAG agent -------------------- #
         print("KG agent returned 'Not Enough Info', falling back to web search...")
-        
-        web_ret = WebEvidenceRetriever(top_k=100, search_engine="serper", use_cross_encoder=use_cross_encoder)
+
+        web_ret = WebEvidenceRetriever(search_k=100, top_k=5, search_engine="serper",
+                                       use_cross_encoder=use_cross_encoder)
         web_ev = web_ret.retrieve(claim)
 
         if not web_ev:
@@ -146,30 +203,47 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                 "kg_success": False,
             }
 
+        # Evidence is already ranked by WebEvidenceRetriever, so we can skip synthesise here
+        # Or apply final synthesis if you want double-ranking
         syn_ev = web_ev  # Already synthesised in retrieve()
-        nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
-        lbl, conf, annotated_ev = aggregate(syn_ev, nli_out)
+        print(f"Synthesised evidence: {syn_ev}")
 
-        return {
-            "claim": claim,
-            "label": lbl,
-            "confidence": conf,
-            "evidence": annotated_ev,
-            "fallback_used": True,
-            "entity_linking": {
-                "candidates": uris,
-            },
-            "mode": "hybrid",
-            "kg_success": False,
-        }
-    
-    else:
-        # Invalid mode
-        return {
-            "claim": claim,
-            "label": "Not Enough Info",
-            "reason": f"Invalid mode '{mode}'. Must be 'hybrid' or 'web_only'.",
-            "evidence": [],
-            "mode": mode,
-            "error": True,
-        }
+        if classifierBackup == "DEBERTA":
+            nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
+            lbl, conf, annotated_ev = aggregate(syn_ev, nli_out, threshold=0.01)
+
+            return {
+                "claim": claim,
+                "label": lbl,
+                "confidence": conf,
+                "evidence": annotated_ev,
+                "mode": "hybrid, DEBERTA",
+                "evidence_count": len(syn_ev),
+                "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder",
+                "entity_linking": {
+                    "candidates": uris,
+                },
+                "kg_success": False,
+            }
+
+
+        else:
+            v = Verifier3()
+            LLM_ev = [e["snippet"] for e in syn_ev]
+            LLM_ev = LLM_ev[0:min(3, len(LLM_ev))]
+            lbl, annotated_ev = v.classify(claim, LLM_ev)
+
+            return {
+                "claim": claim,
+                "label": lbl,
+                "evidence": syn_ev,
+                "reason": annotated_ev,
+                "mode": "hybrid, LLM",
+                "evidence_count": len(syn_ev),
+                "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder",
+                "entity_linking": {
+                    "candidates": uris,
+                },
+                "kg_success": False,
+            }
+    return None

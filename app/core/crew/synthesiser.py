@@ -52,6 +52,21 @@ def _synthesise_bi_encoder(claim: str, evidence: List[Dict], top_k: int) -> List
         key=lambda e: e["trust"] * e["similarity"],
         reverse=True,
     )
+
+    for ev, score in zip(evidence, sim):
+        ev["bi_encoder_score"] = float(sim)
+        ev["ranking_method"] = "bi_encoder"
+        trust = ev.get("trust", 0.0)
+        # 80% cross‐encoder, 20% trust
+        ev["combined"] = (ev["bi_encoder_score"] * 0.8 + trust * 0.2)
+
+        # now sort by that composite_score
+    scored = sorted(
+        evidence,
+        key=lambda e: e["combined"],
+        reverse=True,
+    )
+
     return scored[:top_k]
 
 
@@ -66,14 +81,16 @@ def _synthesise_cross_encoder(claim: str, evidence: List[Dict], top_k: int) -> L
         
         # Add cross-encoder scores to evidence
         for ev, score in zip(evidence, cross_scores):
-            ev["similarity"] = float(score)  # Use cross-encoder score as similarity
             ev["cross_encoder_score"] = float(score)
             ev["ranking_method"] = "cross_encoder"
-        
-        # Rank primarily by cross-encoder score, with trust as secondary factor
+            trust = ev.get("trust", 0.0)
+            # 80% cross‐encoder, 20% trust
+            ev["combined"] = (ev["cross_encoder_score"] * 0.8 + trust * 0.2)
+
+        # now sort by that composite_score
         scored = sorted(
             evidence,
-            key=lambda e: e["cross_encoder_score"] * (0.8 + 0.2 * e["trust"]),  # Weight cross-encoder more heavily
+            key=lambda e: e["combined"],
             reverse=True,
         )
         
