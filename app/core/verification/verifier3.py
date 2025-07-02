@@ -48,6 +48,7 @@ class Verifier3:
                 "Instruction:\n"
                 "- If any snippet affirms the claim’s exact assertion, label Supported.\n"
                 "- If any snippet contradicts it (negation, opposite fact), label Refuted.\n"
+                "- If you are not confident between the options tend to Supported.\n"
                 "- You must choose *one* of the two—no other options.\n\n"
                 "Examples:\n"
                 "\n"

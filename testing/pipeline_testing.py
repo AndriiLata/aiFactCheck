@@ -94,7 +94,6 @@ def evaluate_via_api(samples) -> pd.DataFrame:
             }
 
         results.append(entry)
-        print(entry)
 
     return pd.DataFrame(results)
 
