@@ -63,13 +63,13 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
     
     if mode == "web_only":
         print(f"Running WEB-ONLY mode for claim: {claim}")
-        print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
-        
+
         # Pass ranking preference to WebEvidenceRetriever
         web_ret = WebEvidenceRetriever(search_k= 100, top_k=5, search_engine="serper", use_cross_encoder=use_cross_encoder)
         web_ev = web_ret.retrieve(claim)
 
         if not web_ev:
+            print("No web evidence found.")
             return {
                 "claim": claim,
                 "label": "Not Enough Info",
@@ -86,6 +86,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         if classifierBackup=="DEBERTA":
             nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
             lbl, conf, annotated_ev = aggregate(syn_ev, nli_out, threshold=0.01)
+            print("Label: ", lbl)
 
             return {
                 "claim": claim,
@@ -101,6 +102,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
             LLM_ev=[e["snippet"] for e in syn_ev]
             LLM_ev=LLM_ev[0:min(3,len(LLM_ev))]
             lbl, annotated_ev=v.classify(claim, LLM_ev)
+            print("Label: ", lbl)
 
             return {
                 "claim": claim,
@@ -116,8 +118,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
     
     elif mode == "hybrid":
         print(f"Running HYBRID mode for claim: {claim}")
-        print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
-        
+
         # ---------- 1.  KG AGENT ---------------------------------------- #
         kg_ret = KGEvidenceRetriever()
         uris, paths = kg_ret.retrieve(claim)
@@ -149,17 +150,18 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                 lbl, conf, annotated_ev = aggregate(ev_list, nli_out, threshold=0.6)
 
                 if lbl in ("Supported", "Refuted"):
+                    print("Label: ", lbl)
                     return {
                         "claim": claim,
                         "label": lbl,
                         "reason": annotated_ev,
-                        "all_top_evidence_paths": [
+                        "evidence": [
                             [e.__dict__ for e in p] for p, _ in ranked
                         ],
                         "entity_linking": {
                             "candidates": uris,
                         },
-                        "mode": "hybrid",
+                        "mode": "hybrid, "+classifierDbpedia+", "+classifierBackup,
                         "kg_success": True,
                     }
 
@@ -168,17 +170,18 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                 label, reason = verifier.classify(claim, edges)
 
                 if label in ("Supported", "Refuted"):
+                    print("Label: ", label)
                     return {
                         "claim": claim,
                         "label": label,
                         "reason": reason,
-                        "all_top_evidence_paths": [
+                        "evidence": [
                             [e.__dict__ for e in p] for p, _ in ranked
                         ],
                         "entity_linking": {
                             "candidates": uris,
                         },
-                        "mode": "hybrid",
+                        "mode": "hybrid, "+classifierDbpedia+", "+classifierBackup,
                         "kg_success": True,
                     }
 
@@ -191,6 +194,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         web_ev = web_ret.retrieve(claim)
 
         if not web_ev:
+            print("No web evidence found.")
             return {
                 "claim": claim,
                 "label": "Not Enough Info",
@@ -199,7 +203,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                 "entity_linking": {
                     "candidates": uris,
                 },
-                "mode": "hybrid",
+                "mode": "hybrid, "+classifierDbpedia+", "+classifierBackup,
                 "kg_success": False,
             }
 
@@ -211,13 +215,14 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         if classifierBackup == "DEBERTA":
             nli_out = batch_nli(claim, [e["snippet"] for e in syn_ev])
             lbl, conf, annotated_ev = aggregate(syn_ev, nli_out, threshold=0.01)
+            print("Label: ", lbl)
 
             return {
                 "claim": claim,
                 "label": lbl,
                 "confidence": conf,
                 "evidence": annotated_ev,
-                "mode": "hybrid, DEBERTA",
+                "mode": "hybrid, "+classifierDbpedia+", "+classifierBackup,
                 "evidence_count": len(syn_ev),
                 "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder",
                 "entity_linking": {
@@ -232,13 +237,14 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
             LLM_ev = [e["snippet"] for e in syn_ev]
             LLM_ev = LLM_ev[0:min(3, len(LLM_ev))]
             lbl, annotated_ev = v.classify(claim, LLM_ev)
+            print("Label: ", lbl)
 
             return {
                 "claim": claim,
                 "label": lbl,
                 "evidence": syn_ev,
                 "reason": annotated_ev,
-                "mode": "hybrid, LLM",
+                "mode": "hybrid, "+classifierDbpedia+", "+classifierBackup,
                 "evidence_count": len(syn_ev),
                 "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder",
                 "entity_linking": {
