@@ -123,7 +123,6 @@ def print_metrics(df: pd.DataFrame):
     return {
         "classification_report": report,
         "confusion_matrix": confusion.to_dict(),
-        "average_time_per_prediction": avg_time
     }
 
 
