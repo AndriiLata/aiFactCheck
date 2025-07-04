@@ -7,15 +7,16 @@ import numpy as np
 # Script with various functionality for manual testing
 
 # Small testing file to open previous results
-"""
-with open("Datasets/factkg_api_results400.pkl", "rb") as f:
+
+"""""
+with open("Datasets/fever_01.07_100", "rb") as f:
     data = pickle.load(f)
     df = data["results"]
     metrics = data["metrics"]
 
 #print(df.iloc[0, 0])
-#print(df.iloc[1])
-#print(metrics)
+print(df.iloc[1])
+print(metrics)
 results_df=df
 """
 
@@ -147,8 +148,64 @@ for i, claim in enumerate(error_claims, start=1):
     print(f"{i:3d}. {claim}")
 """
 
+"""
 from refined.inference.processor import Refined
 refined = Refined.from_pretrained(model_name='wikipedia_model_with_numbers',
                                   entity_set="wikipedia")
 spans = refined.process_text("Barack Obama was born in Hawaii")
 print(spans)
+"""
+
+#extracts all claims from previous runs which give NEI
+import pickle
+import pandas as pd
+from pathlib import Path
+
+def extract_nei_cases_from_files(file_paths: list[str]) -> pd.DataFrame:
+    """
+    Given a list of pickle output files (each containing a dict with "results" DataFrame),
+    loads each one, extracts the rows where predicted_label == "Not Enough Info",
+    and returns a single concatenated DataFrame of [claim, true_label, source_file].
+    """
+    all_nei = []
+
+    for file_path in file_paths:
+        path = Path(file_path)
+        if not path.exists():
+            print(f"[!] File not found: {file_path}, skipping.")
+            continue
+
+        with path.open("rb") as f:
+            data = pickle.load(f)
+        df = data.get("results")
+        if df is None or "predicted_label" not in df.columns:
+            print(f"[!] No results DataFrame in {file_path}, skipping.")
+            continue
+
+        nei_df = df[df["predicted_label"] == "Not Enough Info"][["claim", "true_label"]]
+        nei_df = nei_df.copy()
+        nei_df["source_file"] = path.name
+        all_nei.append(nei_df)
+
+    if not all_nei:
+        print("No NEI cases found in any file.")
+        return pd.DataFrame(columns=["claim", "true_label", "source_file"])
+
+    combined = pd.concat(all_nei, ignore_index=True)
+    return combined
+
+file_list = [
+    "Datasets/fever_01.07_100",
+    "Datasets/fever_01.07_1002",
+    "Datasets/fever_01.07_1003",
+    "Datasets/fever_01.07_LessNEI",
+    # add as many as you like...
+]
+
+nei_cases = extract_nei_cases_from_files(file_list)
+print(f"Total NEI cases across all files: {len(nei_cases)}")
+print(nei_cases.head())
+
+# Save out the combined NEI cases for reuse:
+nei_cases.to_pickle("Datasets/combined_NEI_cases.pkl")
+nei_cases.to_csv("Datasets/combined_NEI_cases.csv", index=False)

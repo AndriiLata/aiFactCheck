@@ -26,10 +26,21 @@ class EvidenceRanker2:
     def _path_to_text(path: List[Edge]) -> str:
         if not path:
             return ""
-        return " ".join(
-            [_last(path[0].subject)]
-            + [f"{_last(e.predicate)} {_last(e.object)}" for e in path]
-        )
+
+        # 1) Flatten one level of nesting (in case you passed [[Edge], Edge, …])
+        flat: List[Edge] = []
+        for step in path:
+            if isinstance(step, list):
+                flat.extend(step)
+            else:
+                flat.append(step)
+
+        # 2) Build the pseudo‐sentence from subject → (pred obj)*
+        parts = [_last(flat[0].subject)]
+        for e in flat:
+            parts.append(_last(e.predicate))
+            parts.append(_last(e.object))
+        return " ".join(parts)
 
     def top_k(
         self,

@@ -45,51 +45,56 @@ def pick_test_instances(len_dataset, num_of_samples=5, used_indices_path="Datase
     return selected_indices
 
 
-# Evaluates the given claims using http calls
-# Input: A list of tuples with a claim and a label as strings
-# Return: A pandas dataframe consisting of the tracked stats for the evaluation
 def evaluate_via_api(samples) -> pd.DataFrame:
+    """
+    Sends each (claim, true_label, …) in `samples` to the API, retries once on error,
+    and returns a DataFrame with the raw evidence preserved plus mode and kg_success.
+    """
     results = []
 
     for sample in tqdm(samples, desc="Evaluating claims via API"):
-        claim, true_label,*_=sample
-        try:
-            response = requests.post(API_URL, json={"claim": claim}, timeout=1000)
-            if response.status_code == 200:
-                raw_data = response.json()
-                label_pred = raw_data.get("label", "NOT_ENOUGH_INFO")
-                reason = raw_data.get("reason", "")
-                triple = raw_data.get("triple", {})
-                evidence = raw_data.get("evidence", [])
-                timing_info = raw_data.get("timing_info") if settings.TIME_STEPS else None
-            else:
-                print(f"[!] Error for claim: {claim[:50]}... -> Response status code: {response.status_code}")
-                label_pred = "Error"
-                reason = ""
-                triple = {}
-                evidence = []
-                timing_info = None
-        except Exception as e:
-            print(f"[!] Error for claim: {claim[:50]}... -> {e}")
-            label_pred = "Error"
-            reason = ""
-            triple = {}
-            evidence = []
-            timing_info = None
+        claim, true_label, *rest = sample
+        raw = None
 
-        entry={
-            "claim": claim,
-            "true_label": true_label,
-            "predicted_label": label_pred,
-            "triple": triple,
-            "evidence": evidence,
-            "reason": reason,
-        }
+        # retry up to twice
+        for attempt in range(3):
+            try:
+                resp = requests.post(API_URL, json={"claim": claim}, timeout=1000)
+                if resp.status_code == 200:
+                    raw = resp.json()
+                    break
+                else:
+                    print(f"[!] Attempt {attempt+1} failed for “{claim[:50]}…” → status {resp.status_code}")
+            except Exception as e:
+                print(f"[!] Attempt {attempt+1} exception for “{claim[:50]}…” → {e}")
 
-        if settings.TIME_STEPS and timing_info:
-            entry["timing_info"] = timing_info
+        if raw is None:
+            # both attempts failed
+            entry = {
+                "claim": claim,
+                "true_label": true_label,
+                "predicted_label": "Error",
+                "reason": "",
+                "entity_linking": None,
+                "kg_success": False,
+                "mode": None,
+                "evidence": []
+            }
+        else:
+            # build entry, keeping evidence exactly as returned
+            entry = {
+                "claim":           raw.get("claim", claim),
+                "true_label":      true_label,
+                "predicted_label": raw.get("label", "Error"),
+                "reason":          raw.get("reason", ""),
+                "entity_linking":  raw.get("entity_linking"),
+                "kg_success":      raw.get("kg_success", False),
+                "mode":            raw.get("mode", ""),
+                "evidence":        raw.get("evidence", []),
+            }
 
         results.append(entry)
+
     return pd.DataFrame(results)
 
 
@@ -123,7 +128,6 @@ def print_metrics(df: pd.DataFrame):
     return {
         "classification_report": report,
         "confusion_matrix": confusion.to_dict(),
-        "average_time_per_prediction": avg_time
     }
 
 
