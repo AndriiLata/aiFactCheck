@@ -1,3 +1,5 @@
+gunicorn>=21.2
+
 # ── Core ───────────────────────────
 Flask>=3.0
 python-dotenv>=1.0

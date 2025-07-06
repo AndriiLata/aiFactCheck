@@ -13,7 +13,7 @@ settings = Settings()
 
 
 @api_bp.route("/verify", methods=["POST"])
-def verify_crewAI():
+def verify():
     data = request.get_json(force=True)
     claim = data.get("claim")
     mode = data.get("mode", "hybrid")  # Default to hybrid
