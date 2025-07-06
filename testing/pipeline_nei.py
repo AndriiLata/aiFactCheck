@@ -8,11 +8,11 @@ from app.infrastructure.llm.llm_client import chat
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
 print("Script started")  # At the very top
-API_URL = "http://127.0.0.1:5000/api/verify_crewAI"
-MAX_SAMPLES = 150  # Set your desired maximum here
+API_URL = "https://verify-api-770851903956.europe-west3.run.app/api/verify"
+MAX_SAMPLES = 1000  # Set your desired maximum here
 
 # 1. Load and filter NEI samples
-data = utils.load_fever_dataset("testing/Datasets/fever_train.jsonl", drop_NEI=False)
+data = utils.load_fever_dataset("testing/Datasets/fever_dataset.jsonl", drop_NEI=False)
 nei_samples = []
 for claim, entry in data.items():
     label = entry["Label"][0]  # Label is a list, take first element

@@ -16,7 +16,7 @@ from app.config import Settings
 settings = Settings()
 
 # Our server port adjust as necessary
-API_URL = "http://127.0.0.1:5000/api/verify_crewAI"
+API_URL = "https://verify-api-770851903956.europe-west3.run.app/api/verify"
 
 
 # Picks random instances out of a test set, stores them in a file
@@ -59,7 +59,9 @@ def evaluate_via_api(samples) -> pd.DataFrame:
         # retry up to twice
         for attempt in range(3):
             try:
-                resp = requests.post(API_URL, json={"claim": claim}, timeout=1000)
+                resp = requests.post(API_URL, json={"claim": claim,
+                                                    "mode":"hybrid",
+                                                    }, timeout=1000)
                 if resp.status_code == 200:
                     raw = resp.json()
                     break
