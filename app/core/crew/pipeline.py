@@ -25,18 +25,16 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 
 from .retrievers import KGEvidenceRetriever, WebEvidenceRetriever
-from ..ranking.evidence_ranker2 import EvidenceRanker2
-from ..verification.verifier2 import Verifier2
+from ..ranking.evidence_ranker import EvidenceRanker
+from ..verification.structured_verifier import StructuredVerifier
 from .synthesiser import synthesise
 from .nli import batch_nli
 from .verdict import _aggregate as aggregate
-from ..verification.verifier3 import Verifier3
+from ..verification.snippet_verifier import SnippetVerifier
 from ...models import Edge
 
 
-# ------------------------------------------------------------------ #
-# Helper utilities
-# ------------------------------------------------------------------ #
+
 def _flatten_edges(ranked_paths: List[Tuple[List[Edge], float]], k: int) -> List[Edge]:
     """Take the first *k* individual edges from the ranked paths list."""
     edges: List[Edge] = []
@@ -47,9 +45,7 @@ def _flatten_edges(ranked_paths: List[Tuple[List[Edge], float]], k: int) -> List
     return edges[:k]
 
 
-# ------------------------------------------------------------------ #
-# Main orchestration
-# ------------------------------------------------------------------ #
+
 def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: bool = True, classifierDbpedia:str ="LLM", classifierBackup:str ="LLM") -> Dict:
     """
     Multi-agent reasoning wrapper with ranking method support.
@@ -98,7 +94,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                 "ranking_method": "cross_encoder" if use_cross_encoder else "bi_encoder"
             }
         else:
-            v=Verifier3()
+            v=SnippetVerifier()
             LLM_ev=[e["snippet"] for e in syn_ev]
             LLM_ev=LLM_ev[0:min(3,len(LLM_ev))]
             lbl, annotated_ev=v.classify(claim, LLM_ev)
@@ -124,7 +120,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
         uris, paths = kg_ret.retrieve(claim)
 
         if paths:
-            ranker = EvidenceRanker2(claim_text=claim)
+            ranker = EvidenceRanker(claim_text=claim)
             ranked = ranker.top_k(paths, k=3, use_bi_encoder=False)
             edges = _flatten_edges(ranked, k=3)
 
@@ -166,7 +162,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
                     }
 
             else:
-                verifier = Verifier2()
+                verifier = StructuredVerifier()
                 label, reason = verifier.classify(claim, edges)
 
                 if label in ("Supported", "Refuted"):
@@ -233,7 +229,7 @@ def verify_claim_crew(claim: str, mode: str = "web_only", use_cross_encoder: boo
 
 
         else:
-            v = Verifier3()
+            v = SnippetVerifier()
             LLM_ev = [e["snippet"] for e in syn_ev]
             LLM_ev = LLM_ev[0:min(3, len(LLM_ev))]
             lbl, annotated_ev = v.classify(claim, LLM_ev)

@@ -43,7 +43,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 """
 
 
-class KGClient2:
+class KGClient:
     def __init__(self, endpoint="https://dbpedia.org/sparql", timeout=30, page_size=1000, degree_threshold=20000):
         self.sparql = SPARQLWrapper(endpoint)
         self.sparql.setReturnFormat(JSON)

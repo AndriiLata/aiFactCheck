@@ -8,7 +8,7 @@ def _last(fragment: str) -> str:
     return fragment.split("/")[-1].split("#")[-1]
 
 
-class EvidenceRanker2:
+class EvidenceRanker:
     """
     Flexible two-stage evidence ranker:
     - Optional Bi-encoder filtering
@@ -20,7 +20,7 @@ class EvidenceRanker2:
 
     def __init__(self, *, claim_text: str) -> None:
         self._claim = claim_text
-        self._claim_emb = EvidenceRanker2._bi_encoder.encode(claim_text, convert_to_tensor=True)
+        self._claim_emb = EvidenceRanker._bi_encoder.encode(claim_text, convert_to_tensor=True)
 
     @staticmethod
     def _path_to_text(path: List[Edge]) -> str:
@@ -63,7 +63,7 @@ class EvidenceRanker2:
         texts = [self._path_to_text(p) for p in paths]
 
         if use_bi_encoder:
-            embs = EvidenceRanker2._bi_encoder.encode(texts, convert_to_tensor=True, batch_size=32)
+            embs = EvidenceRanker._bi_encoder.encode(texts, convert_to_tensor=True, batch_size=32)
             bi_scores = util.pytorch_cos_sim(self._claim_emb, embs)[0]
 
             ranked = sorted(
@@ -82,7 +82,7 @@ class EvidenceRanker2:
             rerank_texts = texts
 
         rerank_pairs = [(self._claim, txt) for txt in rerank_texts]
-        cross_scores = EvidenceRanker2._cross_encoder.predict(rerank_pairs)
+        cross_scores = EvidenceRanker._cross_encoder.predict(rerank_pairs)
 
         reranked = sorted(
             zip(rerank_paths, cross_scores),

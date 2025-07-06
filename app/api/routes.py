@@ -12,13 +12,14 @@ from app.config import Settings
 settings = Settings()
 
 
-@api_bp.route("/verify_crewAI", methods=["POST"])
+@api_bp.route("/verify", methods=["POST"])
 def verify_crewAI():
     data = request.get_json(force=True)
     claim = data.get("claim")
     mode = data.get("mode", "hybrid")  # Default to hybrid
-    mode="hybrid"
     use_cross_encoder = data.get("use_cross_encoder", True)  # Default to cross-encoder
+    classifier_dbpedia = data.get("classifierDbpedia", "LLM")  # Default to LLM
+    classifier_backup = data.get("classifierBackup", "LLM")
     
     if not claim:
         return jsonify({"error": "JSON body must contain 'claim'"}), HTTPStatus.BAD_REQUEST
@@ -26,9 +27,8 @@ def verify_crewAI():
     if mode not in ["hybrid", "web_only", "kg_only"]:
         return jsonify({"error": "Mode must be 'hybrid', 'web_only', or 'kg_only'"}), HTTPStatus.BAD_REQUEST
 
-    print(f"Running verification in {mode} mode")
-    print(f"Using {'cross-encoder' if use_cross_encoder else 'bi-encoder'} for evidence ranking")
     
-    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder, classifierDbpedia="LLM", classifierBackup="LLM")
+    out = verify_claim_crew(claim, mode=mode, use_cross_encoder=use_cross_encoder,
+                            classifierDbpedia=classifier_dbpedia, classifierBackup=classifier_backup)
     return jsonify(out), HTTPStatus.OK
 

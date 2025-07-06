@@ -4,7 +4,7 @@ from ...infrastructure.llm.llm_client import chat
 
 LABELS = ("Supported", "Refuted", "Not Enough Info")
 
-class Verifier3:
+class SnippetVerifier:
     """
     Single GPT call over a claim (str) and evidence (list of snippets).
     Honors the model’s NEI if it truly can’t decide, but only truly NEI when 

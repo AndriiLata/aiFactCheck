@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from typing import List, Tuple, Dict
 
-from ..linking.entity_linker2 import EntityLinker2
-from ...infrastructure.kg.kg_client2 import KGClient2
+from ..linking.entity_linker import EntityLinker
+from ...infrastructure.kg.kg_client import KGClient
 from ..verification.web_verifier import WebVerifier
 from ..extraction.claim_paraphrase import paraphrase_claim
 from .trust import score_for_url
@@ -28,8 +28,8 @@ class KGEvidenceRetriever:
     """Link entities in the *claim* and pull 1-hop DBpedia edges."""
 
     def __init__(self, *, max_hops: int = 1) -> None:
-        self._linker = EntityLinker2()
-        self._kg     = KGClient2()
+        self._linker = EntityLinker()
+        self._kg     = KGClient()
         self._max_hops = max_hops
 
     # public ----------------------------------------------------------- #

@@ -5,7 +5,7 @@ Uses MiniLM cosine sim (bi-encoder) or cross-encoder for ranking against the *cl
 from typing import List, Dict
 import re
 from sentence_transformers import SentenceTransformer, util
-from ..ranking.evidence_ranker2 import EvidenceRanker2
+from ..ranking.evidence_ranker import EvidenceRanker
 
 # Keep the bi-encoder for backward compatibility and speed
 _BI_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
@@ -77,7 +77,7 @@ def _synthesise_cross_encoder(claim: str, evidence: List[Dict], top_k: int) -> L
         pairs = [(claim, ev["snippet"]) for ev in evidence]
         
         # Use the existing EvidenceRanker2 cross-encoder
-        cross_scores = EvidenceRanker2._cross_encoder.predict(pairs)
+        cross_scores = EvidenceRanker._cross_encoder.predict(pairs)
         
         # Add cross-encoder scores to evidence
         for ev, score in zip(evidence, cross_scores):

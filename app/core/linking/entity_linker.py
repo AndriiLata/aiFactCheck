@@ -8,7 +8,7 @@ _sparql.setReturnFormat(JSON)
 from typing import List, Optional
 
 
-class EntityLinker2:
+class EntityLinker:
 
     @staticmethod
     def wikidata_to_dbpedia(qid: str) -> Optional[str]:

@@ -9,7 +9,7 @@ from ...models import Edge
 LABELS = ("Supported", "Refuted", "Not Enough Info")
 
 
-class Verifier2:
+class StructuredVerifier:
     """
     Single GPT call that reasons over claim + evidence.
     """
